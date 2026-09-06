@@ -39,7 +39,7 @@ npm run build     # installer -> src-tauri/target/release/bundle/nsis/
 
 ## Releasing a new version (self-update)
 
-Installed copies read `https://github.com/Nam-Antoine/TKB/releases/latest/download/latest.json` at start and every 6 hours and install whatever is newer, as long as it is signed with the updater key.
+Installed copies read `https://github.com/Nam-Antoine/TKB/releases/latest/download/latest.json` at start and every 6 hours and install whatever is newer, as long as it is signed with the updater key. The app fetches that URL without any credentials, so the repository has to be **public** (Settings → General → Danger zone → Change visibility); on a private repository GitHub answers 404 and the app keeps its current version.
 
 1. Bump `version` in `tauri/package.json` and `tauri/src-tauri/tauri.conf.json`.
 2. Commit, then push a tag: `git tag v1.2.0` and `git push origin main v1.2.0`.
