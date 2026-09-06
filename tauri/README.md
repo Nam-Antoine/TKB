@@ -43,8 +43,8 @@ the new version by itself. The feed is a `latest.json` on GitHub Releases:
 2. `npm run release` – builds the installer, signs it with
    `~/.tauri/usth-timetable.key` and writes `latest.json` next to it.
 3. Create a GitHub release tagged `v<version>` in the repository named in the
-   updater endpoint and upload the three files the script lists
-   (`*-setup.exe`, `*.sig`, `latest.json`).
+   updater endpoint and upload the two files the script lists
+   (`*-setup.exe` and `latest.json`; the signature is inside `latest.json`).
 
 Pushing a tag `v<version>` to github.com/Nam-Antoine/TKB does steps 2 and 3
 for you (workflow `.github/workflows/release.yml`, needs the repository secret

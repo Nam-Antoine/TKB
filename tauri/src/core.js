@@ -8,7 +8,7 @@ import { invoke, listen, httpFetch } from './bridge.js';
 import { UsthClient, AuthError, normalizeTimetable, pickCurrentSemester, PORTAL_URL, parseJwt, DEFAULT_ACCOUNT } from './lib/usth-api.js';
 import { diffSessions, describeDiff } from './lib/diff.js';
 import * as notify from './lib/notify.js';
-import { DEFAULT_CONFIG, deepMerge, sanitizeConfig, randomTopic } from './lib/config.js';
+import { DEFAULT_CONFIG, deepMerge, sanitizeConfig, randomTopic, reminderDue } from './lib/config.js';
 import { t, setLang, detectLang } from './lib/i18n.js';
 
 const MAX_CHANGES = 300;
@@ -39,7 +39,7 @@ const state = {
 let config = null;
 let startup = null;
 let pollTimer = null;
-let authExpiredNotified = false;
+let authReminderAt = 0; // when the last "sign in again" notice went out; 0 = none since the last good session
 let lastUpdateCheck = 0;
 const stateListeners = new Set();
 const showChangesListeners = new Set();
@@ -151,16 +151,33 @@ async function notifyChanges(desc, diff, semester) {
   return results;
 }
 
+/**
+ * Tells the user the portal wants a fresh sign-in: Windows toast plus, when enabled,
+ * the phone targets. Repeats every config.reloginRemindHours until a check succeeds
+ * again, because a single toast is easy to miss and the timetable is unwatched meanwhile.
+ */
 async function notifyAuthExpired() {
-  if (authExpiredNotified) return;
-  authExpiredNotified = true;
+  if (!reminderDue(authReminderAt, config.reloginRemindHours)) return;
+  const repeat = authReminderAt > 0;
+  authReminderAt = Date.now();
   const title = t('authExpiredTitle');
-  const text = t('authExpiredText');
+  const text = t(repeat ? 'authReminderText' : 'authExpiredText');
+  log(repeat ? 'sign-in reminder sent' : 'sign-in required notice sent');
   desktopNotify(title, text);
   if (config.notifyOnAuthExpired) {
-    const results = await notify.dispatch(config.webhooks, { title, text, event: 'auth.expired', priority: 'high' }, {});
+    const results = await notify.dispatch(config.webhooks, { title, text, event: repeat ? 'auth.reminder' : 'auth.expired', priority: 'high' }, {});
     for (const r of results) log('webhook', r.target, r.ok ? 'ok' : `failed: ${r.error}`);
   }
+}
+
+/** Keeps the last signed-in account in meta.json so an expired session is recognised (and reported) after a restart too. */
+async function rememberUser(user) {
+  const meta = (await store.read('meta', {})) || {};
+  const known = meta.lastUser || {};
+  if (user && known.studentId === user.studentId && known.fullName === user.fullName) return;
+  if (!user && !meta.lastUser) return;
+  meta.lastUser = user ? { studentId: user.studentId, fullName: user.fullName, email: user.email } : null;
+  await store.write('meta', meta);
 }
 
 async function openLogin(silent) {
@@ -201,7 +218,8 @@ async function refresh({ reason = 'manual', allowSilentReauth = true } = {}) {
     }
     state.user = user;
     state.authState = 'ok';
-    authExpiredNotified = false;
+    authReminderAt = 0;
+    rememberUser(user).catch(() => {});
 
     const semesters = await client.getSemesters();
     state.semesters = semesters
@@ -269,6 +287,8 @@ async function logout() {
   state.authState = 'signed-out';
   state.user = null;
   state.tokenExpiresAt = null;
+  authReminderAt = 0;
+  await rememberUser(null).catch(() => {});
   await broadcast();
   return publicState();
 }
@@ -368,6 +388,11 @@ export async function boot() {
   config = await loadConfig();
   await invoke('set_close_to_tray', { value: config.closeToTray }).catch(() => {});
   if (config.launchAtStartup) invoke('set_autostart', { enabled: true }).catch(() => {});
+
+  // Whoever was signed in last time is still "our" user: if the portal now rejects the
+  // session, that counts as expired (and gets reported), not as never signed in.
+  const meta = (await store.read('meta', {})) || {};
+  if (meta.lastUser && meta.lastUser.studentId) state.user = meta.lastUser;
 
   const snap = await store.read('snapshot', null);
   if (snap && Array.isArray(snap.sessions)) {

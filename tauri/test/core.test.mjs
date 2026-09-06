@@ -4,7 +4,7 @@ import { createHash } from 'node:crypto';
 import { encryptPayload, decryptPayload, checksum, normalizeTimetable, periodToTime, parseJwt } from '../src/lib/usth-api.js';
 import { diffSessions, describeDiff } from '../src/lib/diff.js';
 import { chunk } from '../src/lib/notify.js';
-import { sanitizeConfig } from '../src/lib/config.js';
+import { sanitizeConfig, reminderDue } from '../src/lib/config.js';
 
 test('encrypt/decrypt round trip', async () => {
   const obj = { fromTime: 1, toTime: 2, semester: '20261', weeks: [1, 2], name: 'Tiếng Việt' };
@@ -119,4 +119,24 @@ test('i18n falls back to English and formats dates per language', async () => {
   assert.strictEqual(i18n.sessionCount(1), '1 session');
   assert.strictEqual(i18n.detectLang('vi-VN'), 'vi');
   assert.strictEqual(i18n.detectLang('en-US'), 'en');
+});
+
+test('reloginRemindHours is clamped and defaults to 4', () => {
+  assert.strictEqual(sanitizeConfig({}).reloginRemindHours, 4);
+  assert.strictEqual(sanitizeConfig({ reloginRemindHours: 0 }).reloginRemindHours, 0);
+  assert.strictEqual(sanitizeConfig({ reloginRemindHours: '12' }).reloginRemindHours, 12);
+  assert.strictEqual(sanitizeConfig({ reloginRemindHours: 999 }).reloginRemindHours, 168);
+  assert.strictEqual(sanitizeConfig({ reloginRemindHours: 'abc' }).reloginRemindHours, 4);
+});
+
+test('reminderDue: first notice always, repeats after the interval, quiet at night', () => {
+  const noon = new Date(2026, 8, 7, 12, 0).getTime();
+  const H = 3600000;
+  assert.strictEqual(reminderDue(0, 4, noon), true);
+  assert.strictEqual(reminderDue(noon - 1 * H, 4, noon), false);
+  assert.strictEqual(reminderDue(noon - 4 * H, 4, noon), true);
+  assert.strictEqual(reminderDue(noon - 40 * H, 0, noon), false);
+  const night = new Date(2026, 8, 7, 2, 0).getTime();
+  assert.strictEqual(reminderDue(night - 8 * H, 4, night), false);
+  assert.strictEqual(reminderDue(0, 4, night), true);
 });

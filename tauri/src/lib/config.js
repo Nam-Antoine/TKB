@@ -5,6 +5,7 @@ export const DEFAULT_CONFIG = Object.freeze({
   language: 'en',
   desktopNotifications: true,
   notifyOnAuthExpired: true,
+  reloginRemindHours: 4, // repeat the "sign in again" notice this often; 0 = only once
   launchAtStartup: false,
   startMinimized: false,
   closeToTray: true,
@@ -34,10 +35,25 @@ export function randomTopic() {
   return 'usth-tkb-' + Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
 }
 
+/**
+ * Whether a "sign in again" notice should go out now. The first one always does;
+ * repeats wait `hours` after the previous one (0 = never repeat) and stay quiet
+ * at night (23:00-07:00 local time) so the phone does not buzz while you sleep.
+ */
+export function reminderDue(lastAt, hours, now = Date.now()) {
+  if (!lastAt) return true;
+  if (!(hours > 0)) return false;
+  if (now - lastAt < hours * 3600000) return false;
+  const h = new Date(now).getHours();
+  return h >= 7 && h < 23;
+}
+
 export function sanitizeConfig(cfg) {
   const out = deepMerge(DEFAULT_CONFIG, cfg || {});
   out.pollMinutes = Math.min(1440, Math.max(5, Number(out.pollMinutes) || 30));
   out.language = out.language === 'vi' ? 'vi' : 'en';
+  const remind = Number(out.reloginRemindHours);
+  out.reloginRemindHours = Number.isFinite(remind) ? Math.min(168, Math.max(0, Math.round(remind))) : DEFAULT_CONFIG.reloginRemindHours;
   for (const k of ['desktopNotifications', 'notifyOnAuthExpired', 'launchAtStartup', 'startMinimized', 'closeToTray']) out[k] = !!out[k];
   out.semester = String(out.semester || '');
   for (const t of Object.keys(DEFAULT_CONFIG.webhooks)) {

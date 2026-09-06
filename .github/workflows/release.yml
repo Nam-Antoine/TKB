@@ -64,3 +64,12 @@ jobs:
           releaseDraft: false
           prerelease: false
           includeUpdaterJson: true
+
+      # Leaves one obvious download on the release page: the .sig (already inside latest.json)
+      # is removed and the notes link straight at the installer.
+      - name: Tidy the release page
+        if: steps.key.outputs.present == 'true'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: bash .github/scripts/tidy-release.sh "${{ github.ref_name }}" "${{ github.repository }}"

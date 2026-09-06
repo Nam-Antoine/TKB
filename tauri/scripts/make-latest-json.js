@@ -3,8 +3,9 @@
  * in-app updater downloads from
  *   https://github.com/<owner>/<repo>/releases/latest/download/latest.json
  *
- * Upload the installer (*-setup.exe), its *.sig file and latest.json to a
- * GitHub release tagged v<version>. The download URL below assumes that tag.
+ * Upload the installer (*-setup.exe) and latest.json to a GitHub release tagged
+ * v<version> (the *.sig content is embedded in latest.json, so the .sig file itself
+ * is not needed there). The download URL below assumes that tag.
  */
 import { existsSync, readFileSync, readdirSync, renameSync, writeFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
@@ -51,5 +52,5 @@ const manifest = {
 };
 writeFileSync(join(dir, 'latest.json'), JSON.stringify(manifest, null, 2));
 console.log(`Wrote ${join(dir, 'latest.json')}`);
-console.log(`Upload these three files to the GitHub release v${version} of ${owner}/${repo}:`);
-for (const f of [installer, sig, 'latest.json']) console.log('  ' + join(dir, f));
+console.log(`Upload these two files to the GitHub release v${version} of ${owner}/${repo}:`);
+for (const f of [installer, 'latest.json']) console.log('  ' + join(dir, f));

@@ -6,10 +6,10 @@ Built for the account `namtk2410702` and the people around it who want to know w
 
 ## Get the app
 
-Download `USTH Timetable_<version>_x64-setup.exe` from the [latest release](https://github.com/Nam-Antoine/TKB/releases/latest) and run it (per-user install, no admin rights needed). Then:
+Open the [latest release](https://github.com/Nam-Antoine/TKB/releases/latest) and download the one file the notes point at, `USTH.Timetable_<version>_x64-setup.exe`. Everything else on that page can be ignored: `latest.json` is what installed copies read to update themselves, and the two "Source code" archives are GitHub's copy of this repository. Run the installer (per-user, no admin rights needed). Then:
 
 1. Press **Sign in**. The real portal login page opens with the account already filled in; type the password and tick the captcha.
-2. Done. The timetable loads, the app keeps checking every 30 minutes (also from the tray when the window is closed), renews the portal session by itself and installs new versions on its own. It only asks you to sign in again when the portal ends the session.
+2. Done. The timetable loads, the app keeps checking every 30 minutes (also from the tray when the window is closed), renews the portal session by itself and installs new versions on its own. When the portal ends the session for good, the app tells you with a desktop notification (and a phone push if enabled), repeats the reminder every 4 hours until you sign in again, and says so in its window and tray tooltip. The interval is in Settings (0 = notify only once).
 3. Optional: Settings → *Phone push via ntfy* to get the changes on your phone (install the free ntfy app, subscribe to the topic shown, press *Send test notification*). Discord, Telegram and generic webhooks work too.
 
 Views: **Month** (the portal's own layout: a month calendar with a dot on every day that has class and the selected day's sessions next to it), **Day** (cards for one day, with a week strip on top), **Week** (period grid), **Agenda** (whole semester as a list) and **Classes**. Every change found between two checks lands in the change log (bell icon).
@@ -45,7 +45,7 @@ Installed copies read `https://github.com/Nam-Antoine/TKB/releases/latest/downlo
 
 1. Bump `version` in `tauri/package.json` and `tauri/src-tauri/tauri.conf.json`.
 2. Commit, then push a tag: `git tag v1.2.0` and `git push origin main v1.2.0`.
-3. The **Release** workflow (`.github/workflows/release.yml`) builds the installer, signs it and publishes the GitHub release together with `latest.json`. It needs the repository secret `TAURI_SIGNING_PRIVATE_KEY` (the contents of `~/.tauri/usth-timetable.key`, created once with `npx tauri signer generate`); `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` can be empty.
+3. The **Release** workflow (`.github/workflows/release.yml`) builds the installer, signs it and publishes the GitHub release together with `latest.json`, then tidies the release page (`.github/scripts/tidy-release.sh`: drops the redundant `.sig`, whose content is already inside `latest.json`, and writes notes that link straight at the installer). It needs the repository secret `TAURI_SIGNING_PRIVATE_KEY` (the contents of `~/.tauri/usth-timetable.key`, created once with `npx tauri signer generate`); `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` can be empty.
 
 Without CI: `npm run release` inside `tauri/` does the same locally and prints the three files to upload to a release tagged `v<version>`.
 

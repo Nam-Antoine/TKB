@@ -2,3 +2,5 @@
 *.png binary
 *.ico binary
 *.icns binary
+# Shell scripts run by the GitHub Actions bash step must keep LF endings, even when checked out on Windows.
+*.sh text eol=lf
