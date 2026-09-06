@@ -92,3 +92,31 @@ test('sanitizeConfig clamps and fills defaults', () => {
   assert.strictEqual(c.updates.auto, false);
   assert.strictEqual(c.closeToTray, true);
 });
+
+test('describeDiff speaks Vietnamese when asked', () => {
+  const a = [{ id: '1', classId: 'C1', courseId: 'X', courseName: 'Toán', courseNameEn: 'Maths', dateKey: '2026-09-07', date: 1, from: 1, to: 3, startTime: '07:30', endTime: '10:15', place: 'A1', teachers: ['T'], lessonType: 'LEC' }];
+  const b = [{ ...a[0], place: 'B2' }];
+  const desc = describeDiff(diffSessions(a, b), { lang: 'vi', semester: '20261' });
+  assert.match(desc.title, /^Thời khoá biểu thay đổi \(20261\): đổi 1$/);
+  assert.match(desc.lines[0].text, /T2 07\/09 .* Toán \(C1\): phòng A1 → B2/);
+  const en = describeDiff(diffSessions(a, b), { semester: '20261' });
+  assert.match(en.title, /^Timetable changed \(20261\): 1 changed$/);
+  assert.match(en.lines[0].text, /room A1 → B2/);
+});
+
+test('i18n falls back to English and formats dates per language', async () => {
+  const i18n = await import('../src/lib/i18n.js');
+  i18n.setLang('vi');
+  assert.strictEqual(i18n.t('today'), 'Hôm nay');
+  assert.strictEqual(i18n.t('lastCheck', { t: '10:30' }), 'Kiểm tra lần cuối 10:30');
+  assert.strictEqual(i18n.t('no-such-key'), 'no-such-key');
+  assert.strictEqual(i18n.fmtMonthTitle(new Date(2026, 8, 6)), 'Tháng 9, 2026');
+  assert.strictEqual(i18n.fmtDateLong(new Date(2026, 8, 6)), 'Chủ Nhật, 06/09/2026');
+  assert.strictEqual(i18n.sessionCount(2), '2 buổi học');
+  i18n.setLang('en');
+  assert.strictEqual(i18n.fmtMonthTitle(new Date(2026, 8, 6)), 'September 2026');
+  assert.strictEqual(i18n.fmtDateLong(new Date(2026, 8, 6)), 'Sun, 6 Sep 2026');
+  assert.strictEqual(i18n.sessionCount(1), '1 session');
+  assert.strictEqual(i18n.detectLang('vi-VN'), 'vi');
+  assert.strictEqual(i18n.detectLang('en-US'), 'en');
+});

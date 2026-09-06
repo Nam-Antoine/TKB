@@ -1,0 +1,370 @@
+/**
+ * UI strings and date wording in English and Vietnamese. No DOM at module
+ * level, so the same file serves the tests in Node and the app in the webview.
+ *
+ *   t('lastCheck', { t: '10:30' })  -> 'Last check 10:30' | 'Kiểm tra lần cuối 10:30'
+ *   applyDom(document)              -> fills every [data-i18n] / [data-i18n-title] / [data-i18n-ph] element
+ */
+
+export const LANGS = ['en', 'vi'];
+
+const STRINGS = {
+  en: {
+    appTitle: 'USTH Timetable',
+    notSignedIn: 'Not signed in',
+    sessionExpired: 'Session expired',
+    semesterOf: 'semester {s}',
+    checking: 'Checking the portal…',
+    lastCheck: 'Last check {t}',
+    nextCheck: 'next {t}',
+    dataFrom: 'data from {t}',
+    sessionUntil: 'session until {t}',
+    updateStatus: 'update {v} {status}',
+    'status.available': 'available',
+    'status.installing': 'installing',
+    'status.installed': 'installed',
+    'status.failed': 'failed',
+    refreshTitle: 'Check the portal now',
+    changeLog: 'Change log',
+    settings: 'Settings',
+    signIn: 'Sign in',
+    signInTitle: 'Sign in to the portal',
+    signInAgainTitle: 'Session expired – sign in again',
+    semester: 'Semester',
+    currentSemester: 'Current semester',
+    current: '(current)',
+    bannerExpired: 'Your portal session has expired. Background checks are paused until you sign in again (button at the top right).',
+    bannerFailed: 'Last check failed: {e}. Showing the last known timetable.',
+    prev: 'Previous',
+    next: 'Next',
+    today: 'Today',
+    todayWord: 'today',
+    viewMonth: 'Month',
+    viewDay: 'Day',
+    viewWeek: 'Week grid',
+    viewAgenda: 'Agenda',
+    viewClasses: 'Classes',
+    details: 'Details',
+    noSessions: 'No sessions',
+    noSessionsOn: 'No sessions on {d}.',
+    noSessionsSemester: 'No sessions in this semester yet.',
+    noClasses: 'No classes.',
+    tagCancelled: 'Cancelled',
+    tagExam: 'Exam',
+    tagNow: 'Now',
+    tagNext: 'Next',
+    periods: 'periods {a}–{b}',
+    toTime: 'to {t}',
+    roomNotSet: 'Room not set',
+    colClass: 'Class',
+    colCourse: 'Course',
+    colType: 'Type',
+    colSessions: 'Sessions',
+    colNext: 'Next session',
+    session: 'Session',
+    fDate: 'Date',
+    fTime: 'Time',
+    fRoom: 'Room',
+    fType: 'Type',
+    fTeacher: 'Teacher',
+    fAssistants: 'Assistants',
+    fCourse: 'Course',
+    fWeek: 'Week',
+    fNote: 'Note',
+    fReason: 'Reason',
+    fSemester: 'Semester',
+    examSuffix: '(exam)',
+    clearLog: 'Clear the log',
+    close: 'Close',
+    noChanges: 'No changes recorded yet. The first check only stores a baseline; every later check is compared against it.',
+    emptyTitle: 'Sign in to the USTH student portal',
+    emptyText1: 'The app opens the real portal login page in a window with the account',
+    emptyText2: 'already filled in. After you sign in, it reads the timetable through the portal\'s own API, keeps checking it in the background, and notifies you when anything changes.',
+    general: 'General',
+    checkEvery: 'Check the portal every',
+    minutes: 'minutes',
+    language: 'Language',
+    desktopNotifications: 'Show desktop notifications',
+    launchAtStartup: 'Start with Windows (hidden in the tray)',
+    closeToTray: 'Keep running in the tray when the window is closed',
+    notifyOnAuthExpired: 'Also send a phone notification when the portal session expires',
+    portalAccount: 'Portal account',
+    account: 'Account',
+    accountTitle: 'This app is built for this account; it is pre-filled on the portal login page',
+    signInAgain: 'Sign in again',
+    signInAgainHint: 'Open the portal login page again',
+    password: 'Password',
+    optional: 'optional',
+    passwordSaved: '(saved – type a new one to replace it)',
+    forget: 'Forget',
+    passwordHint: 'Optional. Stored in Windows Credential Manager on this PC only. When set, the login form is filled in and submitted for you as soon as the captcha is ticked.',
+    appUpdates: 'App updates',
+    autoUpdate: 'Install new versions automatically (checked at start and every 6 hours)',
+    updateFeed: 'Update feed',
+    updateFeedPh: '(default: GitHub releases of this app)',
+    checkUpdates: 'Check for updates now',
+    checkingShort: 'Checking…',
+    latestVersion: 'You are on the latest version ({v}).',
+    checkFailed: 'Check failed: {e}',
+    versionAvailable: 'Version {v} is available.',
+    installNow: 'Install now',
+    downloading: 'Downloading {v}… the app will restart by itself.',
+    installFailed: 'Install failed: {e}',
+    ntfy: 'Phone push via ntfy',
+    ntfyHint: '(install the free ntfy app, subscribe to the topic below)',
+    enabled: 'Enabled',
+    server: 'Server',
+    topic: 'Topic',
+    accessToken: 'Access token (optional)',
+    discord: 'Discord webhook',
+    webhookUrl: 'Webhook URL',
+    telegram: 'Telegram bot',
+    botToken: 'Bot token',
+    chatId: 'Chat id',
+    generic: 'Generic webhook',
+    genericHint: '(POST JSON; optional HMAC-SHA256 signature in X-TKB-Signature)',
+    url: 'URL',
+    secret: 'Secret (optional)',
+    sendTest: 'Send test notification',
+    save: 'Save',
+    saved: 'Saved.',
+    savedNoPassword: 'Saved, but the password could not be stored: {e}',
+    passwordRemoved: 'Password removed.',
+    savingSending: 'Saving and sending…',
+    sent: 'sent',
+    failedWith: 'failed ({e})',
+    desktopOnly: 'Desktop notification sent. No webhook is configured yet.',
+    about: 'USTH Timetable {v} · built for {a}',
+    startupFailed: 'Start-up failed: {e}',
+    // core / tray / notifications
+    traySignedIn: 'Signed in as {name} · last check {t}',
+    never: 'never',
+    trayOpen: 'Open',
+    trayCheck: 'Check now',
+    trayLogin: 'Sign in',
+    trayRelogin: 'Re-sign in',
+    trayQuit: 'Quit',
+    loginWindowTitle: 'Sign in to USTH student portal',
+    authExpiredTitle: 'USTH Timetable: sign-in required',
+    authExpiredText: 'The portal session has expired, so the timetable is no longer being watched. Open the app and sign in again.',
+    updateInstalling: 'A new version is being installed. The app will restart in a moment.',
+    testTitle: 'USTH Timetable test notification',
+    testText: 'Notifications are working. Sent {t}.',
+    andMore: '… and {n} more',
+  },
+  vi: {
+    appTitle: 'Thời khoá biểu USTH',
+    notSignedIn: 'Chưa đăng nhập',
+    sessionExpired: 'Phiên đăng nhập đã hết hạn',
+    semesterOf: 'học kỳ {s}',
+    checking: 'Đang kiểm tra cổng thông tin…',
+    lastCheck: 'Kiểm tra lần cuối {t}',
+    nextCheck: 'lần tới {t}',
+    dataFrom: 'dữ liệu lúc {t}',
+    sessionUntil: 'phiên đến {t}',
+    updateStatus: 'cập nhật {v} {status}',
+    'status.available': 'có sẵn',
+    'status.installing': 'đang cài',
+    'status.installed': 'đã cài',
+    'status.failed': 'thất bại',
+    refreshTitle: 'Kiểm tra cổng thông tin ngay',
+    changeLog: 'Nhật ký thay đổi',
+    settings: 'Cài đặt',
+    signIn: 'Đăng nhập',
+    signInTitle: 'Đăng nhập cổng thông tin',
+    signInAgainTitle: 'Phiên đã hết hạn – đăng nhập lại',
+    semester: 'Học kỳ',
+    currentSemester: 'Học kỳ hiện tại',
+    current: '(hiện tại)',
+    bannerExpired: 'Phiên đăng nhập cổng thông tin đã hết hạn. Việc kiểm tra tự động tạm dừng cho đến khi bạn đăng nhập lại (nút ở góc trên bên phải).',
+    bannerFailed: 'Lần kiểm tra gần nhất thất bại: {e}. Đang hiển thị thời khoá biểu đã lưu.',
+    prev: 'Trước',
+    next: 'Sau',
+    today: 'Hôm nay',
+    todayWord: 'hôm nay',
+    viewMonth: 'Lịch tháng',
+    viewDay: 'Lịch ngày',
+    viewWeek: 'Lịch tuần',
+    viewAgenda: 'Danh sách',
+    viewClasses: 'Lớp học',
+    details: 'Thông tin chi tiết',
+    noSessions: 'Không có tiết học',
+    noSessionsOn: 'Không có tiết học ngày {d}.',
+    noSessionsSemester: 'Học kỳ này chưa có buổi học nào.',
+    noClasses: 'Không có lớp học.',
+    tagCancelled: 'Đã huỷ',
+    tagExam: 'Thi',
+    tagNow: 'Đang diễn ra',
+    tagNext: 'Tiếp theo',
+    periods: 'tiết {a}–{b}',
+    toTime: 'đến {t}',
+    roomNotSet: 'Chưa có phòng',
+    colClass: 'Lớp',
+    colCourse: 'Môn học',
+    colType: 'Loại',
+    colSessions: 'Số buổi',
+    colNext: 'Buổi tiếp theo',
+    session: 'Buổi học',
+    fDate: 'Ngày',
+    fTime: 'Giờ',
+    fRoom: 'Phòng',
+    fType: 'Loại',
+    fTeacher: 'Giảng viên',
+    fAssistants: 'Trợ giảng',
+    fCourse: 'Môn học',
+    fWeek: 'Tuần',
+    fNote: 'Ghi chú',
+    fReason: 'Lý do',
+    fSemester: 'Học kỳ',
+    examSuffix: '(thi)',
+    clearLog: 'Xoá nhật ký',
+    close: 'Đóng',
+    noChanges: 'Chưa ghi nhận thay đổi nào. Lần kiểm tra đầu tiên chỉ lưu bản gốc; các lần sau sẽ được so sánh với bản đó.',
+    emptyTitle: 'Đăng nhập cổng thông tin sinh viên USTH',
+    emptyText1: 'Ứng dụng mở trang đăng nhập thật của cổng thông tin với tài khoản',
+    emptyText2: 'đã điền sẵn. Sau khi đăng nhập, ứng dụng đọc thời khoá biểu qua API của cổng, liên tục kiểm tra trong nền và thông báo khi có thay đổi.',
+    general: 'Chung',
+    checkEvery: 'Kiểm tra cổng thông tin mỗi',
+    minutes: 'phút',
+    language: 'Ngôn ngữ',
+    desktopNotifications: 'Hiện thông báo trên máy tính',
+    launchAtStartup: 'Khởi động cùng Windows (ẩn ở khay hệ thống)',
+    closeToTray: 'Tiếp tục chạy ở khay hệ thống khi đóng cửa sổ',
+    notifyOnAuthExpired: 'Gửi thông báo tới điện thoại khi phiên đăng nhập hết hạn',
+    portalAccount: 'Tài khoản cổng thông tin',
+    account: 'Tài khoản',
+    accountTitle: 'Ứng dụng được xây dựng cho tài khoản này; tài khoản được điền sẵn trên trang đăng nhập',
+    signInAgain: 'Đăng nhập lại',
+    signInAgainHint: 'Mở lại trang đăng nhập của cổng thông tin',
+    password: 'Mật khẩu',
+    optional: 'không bắt buộc',
+    passwordSaved: '(đã lưu – nhập mật khẩu mới để thay thế)',
+    forget: 'Xoá',
+    passwordHint: 'Không bắt buộc. Chỉ lưu trong Windows Credential Manager trên máy này. Khi đã lưu, biểu mẫu đăng nhập sẽ được điền và gửi tự động ngay khi bạn tích captcha.',
+    appUpdates: 'Cập nhật ứng dụng',
+    autoUpdate: 'Tự động cài phiên bản mới (kiểm tra khi khởi động và mỗi 6 giờ)',
+    updateFeed: 'Nguồn cập nhật',
+    updateFeedPh: '(mặc định: GitHub Releases của ứng dụng)',
+    checkUpdates: 'Kiểm tra cập nhật ngay',
+    checkingShort: 'Đang kiểm tra…',
+    latestVersion: 'Bạn đang dùng phiên bản mới nhất ({v}).',
+    checkFailed: 'Kiểm tra thất bại: {e}',
+    versionAvailable: 'Đã có phiên bản {v}.',
+    installNow: 'Cài ngay',
+    downloading: 'Đang tải {v}… ứng dụng sẽ tự khởi động lại.',
+    installFailed: 'Cài đặt thất bại: {e}',
+    ntfy: 'Thông báo điện thoại qua ntfy',
+    ntfyHint: '(cài ứng dụng ntfy miễn phí, đăng ký chủ đề bên dưới)',
+    enabled: 'Bật',
+    server: 'Máy chủ',
+    topic: 'Chủ đề',
+    accessToken: 'Mã truy cập (không bắt buộc)',
+    discord: 'Webhook Discord',
+    webhookUrl: 'URL webhook',
+    telegram: 'Bot Telegram',
+    botToken: 'Token bot',
+    chatId: 'Chat id',
+    generic: 'Webhook tuỳ chỉnh',
+    genericHint: '(POST JSON; chữ ký HMAC-SHA256 tuỳ chọn trong X-TKB-Signature)',
+    url: 'URL',
+    secret: 'Khoá bí mật (không bắt buộc)',
+    sendTest: 'Gửi thông báo thử',
+    save: 'Lưu',
+    saved: 'Đã lưu.',
+    savedNoPassword: 'Đã lưu, nhưng không lưu được mật khẩu: {e}',
+    passwordRemoved: 'Đã xoá mật khẩu.',
+    savingSending: 'Đang lưu và gửi…',
+    sent: 'đã gửi',
+    failedWith: 'thất bại ({e})',
+    desktopOnly: 'Đã gửi thông báo trên máy tính. Chưa cấu hình webhook nào.',
+    about: 'Thời khoá biểu USTH {v} · dành cho {a}',
+    startupFailed: 'Khởi động thất bại: {e}',
+    traySignedIn: 'Đã đăng nhập: {name} · kiểm tra lần cuối {t}',
+    never: 'chưa',
+    trayOpen: 'Mở',
+    trayCheck: 'Kiểm tra ngay',
+    trayLogin: 'Đăng nhập',
+    trayRelogin: 'Đăng nhập lại',
+    trayQuit: 'Thoát',
+    loginWindowTitle: 'Đăng nhập cổng thông tin sinh viên USTH',
+    authExpiredTitle: 'Thời khoá biểu USTH: cần đăng nhập',
+    authExpiredText: 'Phiên đăng nhập cổng thông tin đã hết hạn nên thời khoá biểu không còn được theo dõi. Hãy mở ứng dụng và đăng nhập lại.',
+    updateInstalling: 'Phiên bản mới đang được cài. Ứng dụng sẽ khởi động lại trong giây lát.',
+    testTitle: 'Thông báo thử từ Thời khoá biểu USTH',
+    testText: 'Thông báo hoạt động tốt. Gửi lúc {t}.',
+    andMore: '… và {n} thay đổi nữa',
+  },
+};
+
+const DATE_WORDS = {
+  en: {
+    days: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+    daysLong: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
+    months: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+    monthsLong: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
+  },
+  vi: {
+    days: ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'],
+    daysLong: ['Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy', 'Chủ Nhật'],
+  },
+};
+
+let current = 'en';
+
+export function normalizeLang(l) { return LANGS.includes(l) ? l : 'en'; }
+export function setLang(l) { current = normalizeLang(l); return current; }
+export function getLang() { return current; }
+
+/** Picks the language the app should start in when none was saved yet. */
+export function detectLang(navigatorLanguage) {
+  return /^vi\b/i.test(String(navigatorLanguage || '')) ? 'vi' : 'en';
+}
+
+function fill(str, params) {
+  return params ? str.replace(/\{(\w+)\}/g, (m, k) => (params[k] == null ? m : String(params[k]))) : str;
+}
+
+/** Translates a key in the current language (English if the key is missing). */
+export function t(key, params, lang = current) {
+  const s = (STRINGS[lang] && STRINGS[lang][key]) ?? STRINGS.en[key] ?? key;
+  return fill(s, params);
+}
+
+/** Short weekday names, Monday first. */
+export function dayNames(lang = current) { return DATE_WORDS[normalizeLang(lang)].days; }
+export function dayNamesLong(lang = current) { return DATE_WORDS[normalizeLang(lang)].daysLong; }
+
+const pad2 = (n) => String(n).padStart(2, '0');
+
+/** "7 Sep" | "07/09" */
+export function fmtDayShort(d, lang = current) {
+  return lang === 'vi' ? `${pad2(d.getDate())}/${pad2(d.getMonth() + 1)}` : `${d.getDate()} ${DATE_WORDS.en.months[d.getMonth()]}`;
+}
+
+/** "Mon, 7 Sep 2026" | "Thứ Hai, 07/09/2026" */
+export function fmtDateLong(d, lang = current) {
+  const wd = (d.getDay() + 6) % 7;
+  return lang === 'vi'
+    ? `${DATE_WORDS.vi.daysLong[wd]}, ${pad2(d.getDate())}/${pad2(d.getMonth() + 1)}/${d.getFullYear()}`
+    : `${DATE_WORDS.en.days[wd]}, ${d.getDate()} ${DATE_WORDS.en.months[d.getMonth()]} ${d.getFullYear()}`;
+}
+
+/** "September 2026" | "Tháng 9, 2026" */
+export function fmtMonthTitle(d, lang = current) {
+  return lang === 'vi' ? `Tháng ${d.getMonth() + 1}, ${d.getFullYear()}` : `${DATE_WORDS.en.monthsLong[d.getMonth()]} ${d.getFullYear()}`;
+}
+
+/** "3 sessions" | "3 buổi học" */
+export function sessionCount(n, lang = current) {
+  return lang === 'vi' ? `${n} buổi học` : `${n} session${n === 1 ? '' : 's'}`;
+}
+
+/**
+ * Fills the static texts of a page: [data-i18n] -> textContent,
+ * [data-i18n-title] -> title, [data-i18n-ph] -> placeholder.
+ */
+export function applyDom(root) {
+  for (const el of root.querySelectorAll('[data-i18n]')) el.textContent = t(el.dataset.i18n);
+  for (const el of root.querySelectorAll('[data-i18n-title]')) el.title = t(el.dataset.i18nTitle);
+  for (const el of root.querySelectorAll('[data-i18n-ph]')) el.placeholder = t(el.dataset.i18nPh);
+}

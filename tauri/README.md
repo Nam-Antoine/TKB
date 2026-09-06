@@ -15,7 +15,7 @@ account) so the form is submitted for you as soon as the captcha is ticked.
 | Part | Path | Notes |
 |---|---|---|
 | Front-end (UI + all timetable logic) | `src/` | Plain HTML/CSS/ES modules, no bundler. `core.js` is the former Electron main process. |
-| Portal API, diff, notifications, config | `src/lib/` | WebCrypto only, so the same files run in Node for the tests. |
+| Portal API, diff, notifications, config, EN/VI strings | `src/lib/` | WebCrypto only, so the same files run in Node for the tests. `i18n.js` holds every user-facing string; add a key to both languages there. |
 | Native side | `src-tauri/src/lib.rs` | HTTP with portal cookies, login window, JSON store, tray, toasts, autostart, Credential Manager, updater. |
 | App config / bundling | `src-tauri/tauri.conf.json` | Version, updater feed URL and public key live here. |
 

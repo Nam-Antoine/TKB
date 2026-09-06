@@ -9,6 +9,7 @@ import { UsthClient, AuthError, normalizeTimetable, pickCurrentSemester, PORTAL_
 import { diffSessions, describeDiff } from './lib/diff.js';
 import * as notify from './lib/notify.js';
 import { DEFAULT_CONFIG, deepMerge, sanitizeConfig, randomTopic } from './lib/config.js';
+import { t, setLang, detectLang } from './lib/i18n.js';
 
 const MAX_CHANGES = 300;
 const UPDATE_CHECK_MS = 6 * 60 * 60 * 1000;
@@ -63,12 +64,15 @@ const store = {
 function log(...args) { console.log(new Date().toISOString(), ...args); }
 
 async function loadConfig() {
-  const saved = await store.read('config', {});
-  const cfg = sanitizeConfig(deepMerge(DEFAULT_CONFIG, saved || {}));
+  const saved = (await store.read('config', {})) || {};
+  // First run: start in the language Windows is set to (the EN/VI switch changes it any time).
+  if (saved.language == null) saved.language = detectLang(globalThis.navigator && globalThis.navigator.language);
+  const cfg = sanitizeConfig(deepMerge(DEFAULT_CONFIG, saved));
   if (!cfg.webhooks.ntfy.topic) {
     cfg.webhooks.ntfy.topic = randomTopic();
     await store.write('config', cfg);
   }
+  setLang(cfg.language);
   return cfg;
 }
 
@@ -101,10 +105,12 @@ async function broadcast() {
 
 function updateTray() {
   const status = state.authState === 'ok'
-    ? `Signed in as ${state.user ? state.user.fullName : '…'} · last check ${state.lastChecked ? new Date(state.lastChecked).toLocaleTimeString() : 'never'}`
-    : state.authState === 'expired' ? 'Session expired – sign in again' : 'Not signed in';
-  invoke('set_tray_tooltip', { text: `USTH Timetable\n${status}` }).catch(() => {});
-  invoke('set_tray_login_label', { signedIn: state.authState === 'ok' }).catch(() => {});
+    ? t('traySignedIn', { name: state.user ? state.user.fullName : '…', t: state.lastChecked ? new Date(state.lastChecked).toLocaleTimeString() : t('never') })
+    : state.authState === 'expired' ? t('signInAgainTitle') : t('notSignedIn');
+  invoke('set_tray_tooltip', { text: `${t('appTitle')}\n${status}` }).catch(() => {});
+  invoke('set_tray_labels', {
+    labels: { open: t('trayOpen'), check: t('trayCheck'), login: state.authState === 'ok' ? t('trayRelogin') : t('trayLogin'), quit: t('trayQuit') },
+  }).catch(() => {});
 }
 
 function desktopNotify(title, body) {
@@ -131,7 +137,7 @@ async function recordChanges(diff, semester) {
 }
 
 async function notifyChanges(desc, diff, semester) {
-  const preview = desc.lines.slice(0, 4).map((l) => l.text).join('\n') + (desc.lines.length > 4 ? `\n… and ${desc.lines.length - 4} more` : '');
+  const preview = desc.lines.slice(0, 4).map((l) => l.text).join('\n') + (desc.lines.length > 4 ? `\n${t('andMore', { n: desc.lines.length - 4 })}` : '');
   desktopNotify(desc.title, preview);
   const payload = {
     semester,
@@ -148,8 +154,8 @@ async function notifyChanges(desc, diff, semester) {
 async function notifyAuthExpired() {
   if (authExpiredNotified) return;
   authExpiredNotified = true;
-  const title = 'USTH Timetable: sign-in required';
-  const text = 'The portal session has expired, so the timetable is no longer being watched. Open the app and sign in again.';
+  const title = t('authExpiredTitle');
+  const text = t('authExpiredText');
   desktopNotify(title, text);
   if (config.notifyOnAuthExpired) {
     const results = await notify.dispatch(config.webhooks, { title, text, event: 'auth.expired', priority: 'high' }, {});
@@ -161,7 +167,7 @@ async function openLogin(silent) {
   state.loginOpen = !silent;
   await broadcast();
   try {
-    return await invoke('open_login', { silent });
+    return await invoke('open_login', { silent, title: t('loginWindowTitle') });
   } finally {
     state.loginOpen = false;
     await broadcast();
@@ -286,7 +292,7 @@ async function checkForUpdates({ install = config.updates.auto, manual = false }
     state.update = { version: info.version, notes: info.notes || '', status: install ? 'installing' : 'available', checkedAt: Date.now() };
     await broadcast();
     if (install) {
-      desktopNotify(`USTH Timetable ${info.version}`, 'A new version is being installed. The app will restart in a moment.');
+      desktopNotify(`${t('appTitle')} ${info.version}`, t('updateInstalling'));
       await invoke('check_update', { endpoint: config.updates.url || null, install: true });
       state.update = { ...state.update, status: 'installed' };
       await broadcast();
@@ -320,6 +326,7 @@ export const tkb = {
     const before = config;
     config = sanitizeConfig({ ...config, ...patch, webhooks: { ...config.webhooks, ...(patch.webhooks || {}) }, updates: { ...config.updates, ...(patch.updates || {}) } });
     await store.write('config', config);
+    setLang(config.language);
     if (before.pollMinutes !== config.pollMinutes) scheduleNext();
     if (before.launchAtStartup !== config.launchAtStartup) invoke('set_autostart', { enabled: config.launchAtStartup }).catch((e) => log('autostart', e));
     if (before.closeToTray !== config.closeToTray) invoke('set_close_to_tray', { value: config.closeToTray }).catch(() => {});
@@ -337,8 +344,8 @@ export const tkb = {
   },
   clearChanges: async () => { await store.write('changes', []); await broadcast(); return true; },
   testNotify: async () => {
-    const title = 'USTH Timetable test notification';
-    const text = `Notifications are working. Sent ${new Date().toLocaleString()}.`;
+    const title = t('testTitle');
+    const text = t('testText', { t: new Date().toLocaleString() });
     desktopNotify(title, text);
     return notify.dispatch(config.webhooks, { title, text, event: 'test' }, {}, { force: true });
   },

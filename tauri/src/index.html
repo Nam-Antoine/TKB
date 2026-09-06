@@ -15,6 +15,7 @@
     <symbol id="i-prev" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></symbol>
     <symbol id="i-next" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></symbol>
     <symbol id="i-today" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h18"/><path d="m9 16 2 2 4-4"/></symbol>
+    <symbol id="i-month" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h18"/><path d="M8 14h.01"/><path d="M12 14h.01"/><path d="M16 14h.01"/><path d="M8 18h.01"/><path d="M12 18h.01"/><path d="M16 18h.01"/></symbol>
     <symbol id="i-day" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h18"/><rect x="7" y="13" width="4" height="4" rx="1" fill="currentColor" stroke="none"/></symbol>
     <symbol id="i-week" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18"/><path d="M15 3v18"/></symbol>
     <symbol id="i-agenda" viewBox="0 0 24 24"><path d="M8 6h13"/><path d="M8 12h13"/><path d="M8 18h13"/><path d="M3 6h.01"/><path d="M3 12h.01"/><path d="M3 18h.01"/></symbol>
@@ -27,16 +28,19 @@
     <div class="brand">
       <span class="logo">📅</span>
       <div>
-        <div class="title">USTH Timetable</div>
+        <div class="title" data-i18n="appTitle">USTH Timetable</div>
         <div class="subtitle" id="user-line">Not signed in</div>
       </div>
     </div>
     <div class="status" id="status-line"></div>
     <div class="actions">
-      <select id="semester-select" title="Semester"></select>
-      <button id="btn-refresh" class="btn icon" title="Check the portal now" aria-label="Refresh"><svg class="i"><use href="#i-refresh"/></svg></button>
-      <button id="btn-changes" class="btn icon" title="Change log" aria-label="Change log"><svg class="i"><use href="#i-bell"/></svg><span class="badge" id="changes-badge" hidden>0</span></button>
-      <button id="btn-settings" class="btn icon" title="Settings" aria-label="Settings"><svg class="i"><use href="#i-settings"/></svg></button>
+      <div class="lang-switch" id="lang-switch" role="group" aria-label="Language">
+        <button type="button" class="lang" data-lang="en">EN</button><button type="button" class="lang" data-lang="vi">VI</button>
+      </div>
+      <select id="semester-select" data-i18n-title="semester" title="Semester"></select>
+      <button id="btn-refresh" class="btn icon" data-i18n-title="refreshTitle" title="Check the portal now" aria-label="Refresh"><svg class="i"><use href="#i-refresh"/></svg></button>
+      <button id="btn-changes" class="btn icon" data-i18n-title="changeLog" title="Change log" aria-label="Change log"><svg class="i"><use href="#i-bell"/></svg><span class="badge" id="changes-badge" hidden>0</span></button>
+      <button id="btn-settings" class="btn icon" data-i18n-title="settings" title="Settings" aria-label="Settings"><svg class="i"><use href="#i-settings"/></svg></button>
       <button id="btn-login" class="btn icon primary" title="Sign in to the portal" aria-label="Sign in" hidden><svg class="i"><use href="#i-login"/></svg></button>
     </div>
   </header>
@@ -46,20 +50,37 @@
   <main id="main">
     <section class="toolbar">
       <div class="nav">
-        <button class="btn icon" id="btn-prev" title="Previous" aria-label="Previous"><svg class="i"><use href="#i-prev"/></svg></button>
-        <button class="btn icon" id="btn-today" title="Today" aria-label="Today"><svg class="i"><use href="#i-today"/></svg></button>
-        <button class="btn icon" id="btn-next" title="Next" aria-label="Next"><svg class="i"><use href="#i-next"/></svg></button>
+        <button class="btn icon" id="btn-prev" data-i18n-title="prev" title="Previous" aria-label="Previous"><svg class="i"><use href="#i-prev"/></svg></button>
+        <button class="btn pill" id="btn-today" data-i18n="today" title="Today">Today</button>
+        <button class="btn icon" id="btn-next" data-i18n-title="next" title="Next" aria-label="Next"><svg class="i"><use href="#i-next"/></svg></button>
         <span class="week-label" id="week-label"></span>
       </div>
       <div class="view-switch">
-        <button class="btn seg icon" data-view="day" title="Day" aria-label="Day view"><svg class="i"><use href="#i-day"/></svg></button>
-        <button class="btn seg icon" data-view="week" title="Week grid" aria-label="Week view"><svg class="i"><use href="#i-week"/></svg></button>
-        <button class="btn seg icon" data-view="agenda" title="Agenda" aria-label="Agenda view"><svg class="i"><use href="#i-agenda"/></svg></button>
-        <button class="btn seg icon" data-view="classes" title="Classes" aria-label="Class list"><svg class="i"><use href="#i-classes"/></svg></button>
+        <button class="btn seg icon" data-view="month" data-i18n-title="viewMonth" title="Month" aria-label="Month view"><svg class="i"><use href="#i-month"/></svg></button>
+        <button class="btn seg icon" data-view="day" data-i18n-title="viewDay" title="Day" aria-label="Day view"><svg class="i"><use href="#i-day"/></svg></button>
+        <button class="btn seg icon" data-view="week" data-i18n-title="viewWeek" title="Week grid" aria-label="Week view"><svg class="i"><use href="#i-week"/></svg></button>
+        <button class="btn seg icon" data-view="agenda" data-i18n-title="viewAgenda" title="Agenda" aria-label="Agenda view"><svg class="i"><use href="#i-agenda"/></svg></button>
+        <button class="btn seg icon" data-view="classes" data-i18n-title="viewClasses" title="Classes" aria-label="Class list"><svg class="i"><use href="#i-classes"/></svg></button>
       </div>
     </section>
 
-    <section id="view-day" class="view">
+    <!-- Month view: portal-style month calendar on the left, the selected day's sessions on the right -->
+    <section id="view-month" class="view month">
+      <div class="month-cal">
+        <div class="month-head">
+          <button class="btn icon round" id="btn-month-prev" data-i18n-title="prev" title="Previous" aria-label="Previous month"><svg class="i"><use href="#i-prev"/></svg></button>
+          <div class="month-title" id="month-title"></div>
+          <button class="btn icon round" id="btn-month-next" data-i18n-title="next" title="Next" aria-label="Next month"><svg class="i"><use href="#i-next"/></svg></button>
+        </div>
+        <div class="month-grid" id="month-grid"></div>
+      </div>
+      <div class="month-details">
+        <h3 data-i18n="details">Details</h3>
+        <div class="month-sub" id="month-sub"></div>
+        <div class="day-list" id="month-list"></div>
+      </div>
+    </section>
+    <section id="view-day" class="view" hidden>
       <div class="day-strip" id="day-strip"></div>
       <div class="day-list" id="day-list"></div>
     </section>
@@ -75,19 +96,19 @@
 
     <section id="empty" class="empty" hidden>
       <div class="empty-card">
-        <h2>Sign in to the USTH student portal</h2>
-        <p>The app opens the real portal login page in a window with the account <b id="empty-account">namtk2410702</b> already filled in. After you sign in, it reads the timetable through the portal's own API, keeps checking it in the background, and notifies you when anything changes.</p>
-        <button class="btn primary big" id="btn-login-2"><svg class="i"><use href="#i-login"/></svg> Sign in</button>
+        <h2 data-i18n="emptyTitle">Sign in to the USTH student portal</h2>
+        <p><span data-i18n="emptyText1">The app opens the real portal login page in a window with the account</span> <b id="empty-account">namtk2410702</b> <span data-i18n="emptyText2">already filled in. After you sign in, it reads the timetable through the portal's own API, keeps checking it in the background, and notifies you when anything changes.</span></p>
+        <button class="btn primary big" id="btn-login-2"><svg class="i"><use href="#i-login"/></svg> <span data-i18n="signIn">Sign in</span></button>
       </div>
     </section>
   </main>
 
   <aside class="drawer" id="drawer-changes" hidden>
     <div class="drawer-head">
-      <h3>Change log</h3>
+      <h3 data-i18n="changeLog">Change log</h3>
       <div>
-        <button class="btn small icon" id="btn-clear-changes" title="Clear the log" aria-label="Clear"><svg class="i"><use href="#i-trash"/></svg></button>
-        <button class="btn small icon" id="btn-close-changes" title="Close" aria-label="Close"><svg class="i"><use href="#i-close"/></svg></button>
+        <button class="btn small icon" id="btn-clear-changes" data-i18n-title="clearLog" title="Clear the log" aria-label="Clear"><svg class="i"><use href="#i-trash"/></svg></button>
+        <button class="btn small icon" id="btn-close-changes" data-i18n-title="close" title="Close" aria-label="Close"><svg class="i"><use href="#i-close"/></svg></button>
       </div>
     </div>
     <div class="drawer-body" id="changes-list"></div>
@@ -95,57 +116,57 @@
 
   <div class="modal" id="modal-settings" hidden>
     <div class="modal-card">
-      <div class="modal-head"><h3>Settings</h3><button class="btn small icon" id="btn-close-settings" title="Close" aria-label="Close"><svg class="i"><use href="#i-close"/></svg></button></div>
+      <div class="modal-head"><h3 data-i18n="settings">Settings</h3><button class="btn small icon" id="btn-close-settings" data-i18n-title="close" title="Close" aria-label="Close"><svg class="i"><use href="#i-close"/></svg></button></div>
       <form id="settings-form" class="settings">
         <fieldset>
-          <legend>General</legend>
-          <label>Check the portal every <input type="number" name="pollMinutes" min="5" max="1440" step="5" /> minutes</label>
-          <label>Course names <select name="language"><option value="en">English</option><option value="vi">Vietnamese</option></select></label>
-          <label><input type="checkbox" name="desktopNotifications" /> Show desktop notifications</label>
-          <label><input type="checkbox" name="launchAtStartup" /> Start with Windows (hidden in the tray)</label>
-          <label><input type="checkbox" name="closeToTray" /> Keep running in the tray when the window is closed</label>
-          <label><input type="checkbox" name="notifyOnAuthExpired" /> Also send a phone notification when the portal session expires</label>
+          <legend data-i18n="general">General</legend>
+          <label><span data-i18n="checkEvery">Check the portal every</span> <input type="number" name="pollMinutes" min="5" max="1440" step="5" /> <span data-i18n="minutes">minutes</span></label>
+          <label><span data-i18n="language">Language</span> <select name="language"><option value="en">English</option><option value="vi">Tiếng Việt</option></select></label>
+          <label><input type="checkbox" name="desktopNotifications" /> <span data-i18n="desktopNotifications">Show desktop notifications</span></label>
+          <label><input type="checkbox" name="launchAtStartup" /> <span data-i18n="launchAtStartup">Start with Windows (hidden in the tray)</span></label>
+          <label><input type="checkbox" name="closeToTray" /> <span data-i18n="closeToTray">Keep running in the tray when the window is closed</span></label>
+          <label><input type="checkbox" name="notifyOnAuthExpired" /> <span data-i18n="notifyOnAuthExpired">Also send a phone notification when the portal session expires</span></label>
         </fieldset>
         <fieldset>
-          <legend>Portal account</legend>
-          <label>Account <input type="text" name="_account" value="namtk2410702" readonly title="This app is built for this account; it is pre-filled on the portal login page" /> <button type="button" class="btn small" id="btn-relogin" title="Open the portal login page again">Sign in again</button></label>
-          <label>Password <input type="password" name="_password" autocomplete="off" placeholder="optional" /> <button type="button" class="btn small" id="btn-forget-password">Forget</button></label>
-          <p class="hint">Optional. Stored in Windows Credential Manager on this PC only. When set, the login form is filled in and submitted for you as soon as the captcha is ticked.</p>
+          <legend data-i18n="portalAccount">Portal account</legend>
+          <label><span data-i18n="account">Account</span> <input type="text" name="_account" value="namtk2410702" readonly data-i18n-title="accountTitle" title="This app is built for this account; it is pre-filled on the portal login page" /> <button type="button" class="btn small" id="btn-relogin" data-i18n="signInAgain" data-i18n-title="signInAgainHint" title="Open the portal login page again">Sign in again</button></label>
+          <label><span data-i18n="password">Password</span> <input type="password" name="_password" autocomplete="off" placeholder="optional" /> <button type="button" class="btn small" id="btn-forget-password" data-i18n="forget">Forget</button></label>
+          <p class="hint" data-i18n="passwordHint">Optional. Stored in Windows Credential Manager on this PC only. When set, the login form is filled in and submitted for you as soon as the captcha is ticked.</p>
         </fieldset>
         <fieldset>
-          <legend>App updates</legend>
-          <label><input type="checkbox" name="updates.auto" /> Install new versions automatically (checked at start and every 6 hours)</label>
-          <label>Update feed <input type="url" name="updates.url" placeholder="(default: GitHub releases of this app)" /></label>
-          <div class="modal-actions" style="justify-content:flex-start"><button type="button" class="btn small" id="btn-check-update">Check for updates now</button> <span id="update-msg" class="hint"></span></div>
+          <legend data-i18n="appUpdates">App updates</legend>
+          <label><input type="checkbox" name="updates.auto" /> <span data-i18n="autoUpdate">Install new versions automatically (checked at start and every 6 hours)</span></label>
+          <label><span data-i18n="updateFeed">Update feed</span> <input type="url" name="updates.url" data-i18n-ph="updateFeedPh" placeholder="(default: GitHub releases of this app)" /></label>
+          <div class="modal-actions" style="justify-content:flex-start"><button type="button" class="btn small" id="btn-check-update" data-i18n="checkUpdates">Check for updates now</button> <span id="update-msg" class="hint"></span></div>
         </fieldset>
         <fieldset>
-          <legend>Phone push via ntfy <span class="hint">(install the free ntfy app, subscribe to the topic below)</span></legend>
-          <label><input type="checkbox" name="webhooks.ntfy.enabled" /> Enabled</label>
-          <label>Server <input type="url" name="webhooks.ntfy.server" placeholder="https://ntfy.sh" /></label>
-          <label>Topic <input type="text" name="webhooks.ntfy.topic" placeholder="usth-tkb-xxxxxxxx" /></label>
-          <label>Access token (optional) <input type="password" name="webhooks.ntfy.token" /></label>
+          <legend><span data-i18n="ntfy">Phone push via ntfy</span> <span class="hint" data-i18n="ntfyHint">(install the free ntfy app, subscribe to the topic below)</span></legend>
+          <label><input type="checkbox" name="webhooks.ntfy.enabled" /> <span data-i18n="enabled">Enabled</span></label>
+          <label><span data-i18n="server">Server</span> <input type="url" name="webhooks.ntfy.server" placeholder="https://ntfy.sh" /></label>
+          <label><span data-i18n="topic">Topic</span> <input type="text" name="webhooks.ntfy.topic" placeholder="usth-tkb-xxxxxxxx" /></label>
+          <label><span data-i18n="accessToken">Access token (optional)</span> <input type="password" name="webhooks.ntfy.token" /></label>
         </fieldset>
         <fieldset>
-          <legend>Discord webhook</legend>
-          <label><input type="checkbox" name="webhooks.discord.enabled" /> Enabled</label>
-          <label>Webhook URL <input type="url" name="webhooks.discord.url" placeholder="https://discord.com/api/webhooks/..." /></label>
+          <legend data-i18n="discord">Discord webhook</legend>
+          <label><input type="checkbox" name="webhooks.discord.enabled" /> <span data-i18n="enabled">Enabled</span></label>
+          <label><span data-i18n="webhookUrl">Webhook URL</span> <input type="url" name="webhooks.discord.url" placeholder="https://discord.com/api/webhooks/..." /></label>
         </fieldset>
         <fieldset>
-          <legend>Telegram bot</legend>
-          <label><input type="checkbox" name="webhooks.telegram.enabled" /> Enabled</label>
-          <label>Bot token <input type="password" name="webhooks.telegram.botToken" /></label>
-          <label>Chat id <input type="text" name="webhooks.telegram.chatId" /></label>
+          <legend data-i18n="telegram">Telegram bot</legend>
+          <label><input type="checkbox" name="webhooks.telegram.enabled" /> <span data-i18n="enabled">Enabled</span></label>
+          <label><span data-i18n="botToken">Bot token</span> <input type="password" name="webhooks.telegram.botToken" /></label>
+          <label><span data-i18n="chatId">Chat id</span> <input type="text" name="webhooks.telegram.chatId" /></label>
         </fieldset>
         <fieldset>
-          <legend>Generic webhook <span class="hint">(POST JSON; optional HMAC-SHA256 signature in X-TKB-Signature)</span></legend>
-          <label><input type="checkbox" name="webhooks.generic.enabled" /> Enabled</label>
-          <label>URL <input type="url" name="webhooks.generic.url" placeholder="https://example.com/hook" /></label>
-          <label>Secret (optional) <input type="password" name="webhooks.generic.secret" /></label>
+          <legend><span data-i18n="generic">Generic webhook</span> <span class="hint" data-i18n="genericHint">(POST JSON; optional HMAC-SHA256 signature in X-TKB-Signature)</span></legend>
+          <label><input type="checkbox" name="webhooks.generic.enabled" /> <span data-i18n="enabled">Enabled</span></label>
+          <label><span data-i18n="url">URL</span> <input type="url" name="webhooks.generic.url" placeholder="https://example.com/hook" /></label>
+          <label><span data-i18n="secret">Secret (optional)</span> <input type="password" name="webhooks.generic.secret" /></label>
         </fieldset>
         <div class="modal-actions">
           <span id="settings-msg" class="hint"></span>
-          <button type="button" class="btn" id="btn-test-notify">Send test notification</button>
-          <button type="submit" class="btn primary">Save</button>
+          <button type="button" class="btn" id="btn-test-notify" data-i18n="sendTest">Send test notification</button>
+          <button type="submit" class="btn primary" data-i18n="save">Save</button>
         </div>
         <p class="hint" id="about-line"></p>
       </form>
@@ -154,7 +175,7 @@
 
   <div class="modal" id="modal-session" hidden>
     <div class="modal-card narrow">
-      <div class="modal-head"><h3 id="session-title">Session</h3><button class="btn small icon" id="btn-close-session" title="Close" aria-label="Close"><svg class="i"><use href="#i-close"/></svg></button></div>
+      <div class="modal-head"><h3 id="session-title">Session</h3><button class="btn small icon" id="btn-close-session" data-i18n-title="close" title="Close" aria-label="Close"><svg class="i"><use href="#i-close"/></svg></button></div>
       <dl class="details" id="session-details"></dl>
     </div>
   </div>

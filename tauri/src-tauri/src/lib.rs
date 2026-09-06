@@ -233,7 +233,7 @@ async fn clear_browsing_data(app: AppHandle) -> Result<(), String> {
 /// stays hidden and only gets a short time: the portal SPA re-runs SSO by
 /// itself when the 24 h token has expired but the SSO session is still alive.
 #[tauri::command]
-async fn open_login(app: AppHandle, state: State<'_, AppState>, silent: bool) -> Result<bool, String> {
+async fn open_login(app: AppHandle, state: State<'_, AppState>, silent: bool, title: Option<String>) -> Result<bool, String> {
     if let Some(existing) = app.get_webview_window(LOGIN_LABEL) {
         if !silent {
             let _ = existing.show();
@@ -247,7 +247,7 @@ async fn open_login(app: AppHandle, state: State<'_, AppState>, silent: bool) ->
     let script = login_init_script(DEFAULT_ACCOUNT, password.as_deref());
     let url = Url::parse(PORTAL_URL).map_err(err)?;
     let win = WebviewWindowBuilder::new(&app, LOGIN_LABEL, WebviewUrl::External(url))
-        .title("Sign in to USTH student portal")
+        .title(title.as_deref().unwrap_or("Sign in to USTH student portal"))
         .inner_size(1000.0, 780.0)
         .visible(!silent)
         .initialization_script(&script)
@@ -344,10 +344,22 @@ fn set_tray_tooltip(app: AppHandle, text: String) {
     }
 }
 
+#[derive(Deserialize)]
+pub struct TrayLabels {
+    open: String,
+    check: String,
+    login: String,
+    quit: String,
+}
+
+/// Relabels the tray menu (the front-end owns the wording, in the user's language).
 #[tauri::command]
-fn set_tray_login_label(app: AppHandle, signed_in: bool) {
-    if let Some(item) = app.try_state::<TrayItems>() {
-        let _ = item.login.set_text(if signed_in { "Re-sign in" } else { "Sign in" });
+fn set_tray_labels(app: AppHandle, labels: TrayLabels) {
+    if let Some(items) = app.try_state::<TrayItems>() {
+        let _ = items.open.set_text(labels.open);
+        let _ = items.check.set_text(labels.check);
+        let _ = items.login.set_text(labels.login);
+        let _ = items.quit.set_text(labels.quit);
     }
 }
 
@@ -439,7 +451,10 @@ fn restart_app(app: AppHandle) {
 // ---------- tray ----------
 
 struct TrayItems {
+    open: MenuItem<tauri::Wry>,
+    check: MenuItem<tauri::Wry>,
     login: MenuItem<tauri::Wry>,
+    quit: MenuItem<tauri::Wry>,
 }
 
 fn build_tray(app: &AppHandle) -> tauri::Result<()> {
@@ -448,7 +463,7 @@ fn build_tray(app: &AppHandle) -> tauri::Result<()> {
     let login = MenuItem::with_id(app, "login", "Sign in", true, None::<&str>)?;
     let quit = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
     let menu = Menu::with_items(app, &[&open, &check, &login, &PredefinedMenuItem::separator(app)?, &quit])?;
-    app.manage(TrayItems { login: login.clone() });
+    app.manage(TrayItems { open: open.clone(), check: check.clone(), login: login.clone(), quit: quit.clone() });
     let icon = app.default_window_icon().cloned().expect("window icon");
     TrayIconBuilder::with_id("main")
         .icon(icon)
@@ -512,7 +527,7 @@ pub fn run() {
             show_main,
             notify_desktop,
             set_tray_tooltip,
-            set_tray_login_label,
+            set_tray_labels,
             set_close_to_tray,
             set_autostart,
             open_external,

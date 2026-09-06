@@ -12,7 +12,9 @@ Download `USTH Timetable_<version>_x64-setup.exe` from the [latest release](http
 2. Done. The timetable loads, the app keeps checking every 30 minutes (also from the tray when the window is closed), renews the portal session by itself and installs new versions on its own. It only asks you to sign in again when the portal ends the session.
 3. Optional: Settings → *Phone push via ntfy* to get the changes on your phone (install the free ntfy app, subscribe to the topic shown, press *Send test notification*). Discord, Telegram and generic webhooks work too.
 
-Views: **Day** (cards for one day, with a week strip on top), **Week** (period grid), **Agenda** (whole semester as a list) and **Classes**. Every change found between two checks lands in the change log (bell icon).
+Views: **Month** (the portal's own layout: a month calendar with a dot on every day that has class and the selected day's sessions next to it), **Day** (cards for one day, with a week strip on top), **Week** (period grid), **Agenda** (whole semester as a list) and **Classes**. Every change found between two checks lands in the change log (bell icon).
+
+The whole app, the change log, the tray menu and the notifications are available in **English and Vietnamese**: the EN / VI switch at the top right changes the language at any time (the first start follows the Windows display language).
 
 ## Repository layout
 
@@ -20,7 +22,7 @@ Views: **Day** (cards for one day, with a week strip on top), **Week** (period g
 |---|---|
 | `tauri/` | The app: Tauri 2 on the Edge WebView2 that Windows already ships. Releases are built from here. |
 | `tauri/src/` | UI and all timetable logic (plain HTML/CSS/ES modules, no bundler). |
-| `tauri/src/lib/` | Portal API wrapper, snapshot diff, notifications, config. Runs in Node too, so it is unit-tested there. |
+| `tauri/src/lib/` | Portal API wrapper, snapshot diff, notifications, config, EN/VI strings. Runs in Node too, so it is unit-tested there. |
 | `tauri/src-tauri/` | Rust shell: HTTP with the portal cookies, login window, tray, toasts, Credential Manager, updater. |
 | `src/`, `scripts/`, `test/` | The original Electron edition (same logic, 100 MB installer). Kept for reference. |
 | `assets/` | Icon sources. |
