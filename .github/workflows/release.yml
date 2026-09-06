@@ -13,24 +13,45 @@ jobs:
   windows:
     runs-on: windows-latest
     steps:
+      # Without the signing key the installer could not be signed and installed copies
+      # would refuse it, so the build is skipped (with a warning) instead of failing.
+      - name: Check for the updater signing key
+        id: key
+        shell: bash
+        env:
+          KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+        run: |
+          if [ -n "$KEY" ]; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::Repository secret TAURI_SIGNING_PRIVATE_KEY is not set, so no release was built. See README, 'Releasing a new version'."
+          fi
+
       - uses: actions/checkout@v4
+        if: steps.key.outputs.present == 'true'
 
       - uses: actions/setup-node@v4
+        if: steps.key.outputs.present == 'true'
         with:
           node-version: 22
           cache: npm
           cache-dependency-path: tauri/package-lock.json
 
       - uses: dtolnay/rust-toolchain@stable
+        if: steps.key.outputs.present == 'true'
 
       - uses: swatinem/rust-cache@v2
+        if: steps.key.outputs.present == 'true'
         with:
           workspaces: tauri/src-tauri
 
       - run: npm ci
+        if: steps.key.outputs.present == 'true'
         working-directory: tauri
 
       - uses: tauri-apps/tauri-action@v0
+        if: steps.key.outputs.present == 'true'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}

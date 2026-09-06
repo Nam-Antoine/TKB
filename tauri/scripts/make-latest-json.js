@@ -6,7 +6,7 @@
  * Upload the installer (*-setup.exe), its *.sig file and latest.json to a
  * GitHub release tagged v<version>. The download URL below assumes that tag.
  */
-import { readFileSync, readdirSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync, renameSync, writeFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -19,8 +19,16 @@ if (!m) { console.error(`Cannot derive the GitHub repo from the updater endpoint
 const [, owner, repo] = m;
 
 const dir = join(root, 'src-tauri', 'target', 'release', 'bundle', 'nsis');
+let installer = readdirSync(dir).find((f) => f.endsWith('-setup.exe'));
+// GitHub turns spaces in asset names into dots, which would break the download URL
+// below, so the installer (and its signature) are published under a space-free name.
+if (installer && /\s/.test(installer)) {
+  const clean = installer.replace(/\s+/g, '-');
+  renameSync(join(dir, installer), join(dir, clean));
+  if (existsSync(join(dir, installer + '.sig'))) renameSync(join(dir, installer + '.sig'), join(dir, clean + '.sig'));
+  installer = clean;
+}
 const files = readdirSync(dir);
-const installer = files.find((f) => f.endsWith('-setup.exe'));
 const sig = installer && files.includes(installer + '.sig') ? installer + '.sig' : null;
 if (!installer || !sig) {
   console.error(`No signed installer in ${dir}. Build with \`npm run release\` (the signature needs the updater key).`);
