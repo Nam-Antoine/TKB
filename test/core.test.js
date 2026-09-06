@@ -1,0 +1,76 @@
+'use strict';
+const test = require('node:test');
+const assert = require('node:assert');
+const { encryptPayload, decryptPayload, checksum, normalizeTimetable, periodToTime } = require('../src/usth-api');
+const { diffSessions, describeDiff } = require('../src/diff');
+const { chunk } = require('../src/notify');
+
+test('encrypt/decrypt round trip', () => {
+  const obj = { fromTime: 1, toTime: 2, semester: '20261', weeks: [1, 2] };
+  assert.deepStrictEqual(decryptPayload(encryptPayload(obj)), obj);
+});
+
+test('checksum ignores non-primitive fields and sorts keys', () => {
+  const a = checksum({ toTime: 2, fromTime: 1, weeks: [1], semester: 'x' });
+  const b = checksum({ fromTime: 1, semester: 'x', toTime: 2, weeks: [9, 9] });
+  assert.strictEqual(a, b);
+  assert.match(a, /^[0-9a-f]{64}$/);
+});
+
+test('periodToTime handles periods and HHMM', () => {
+  assert.strictEqual(periodToTime(1, 'from'), '07:30');
+  assert.strictEqual(periodToTime(9, 'to'), '16:45');
+  assert.strictEqual(periodToTime(900, 'from'), '09:00');
+  assert.strictEqual(periodToTime(-1, 'from'), '');
+});
+
+function cls(overrides) {
+  return {
+    id: 1, classId: '261ICT3017.L1', courseId: 'ICT3.017', courseName: 'Học sâu', courseNameEn: 'Intro to Deep Learning', classType: 'LT', semester: '20261',
+    _calendars: [
+      { id: 100, date: 1788368400000, day: 5, from: 6, to: 8, place: 'A30-1', teacherNames: ['A'], lessonType: 'LT', status: 1, teachingStatus: 0, week: '5', semester: '20261' },
+      { id: 101, date: -1, day: 4, from: 6, to: 8, place: 'X', teacherNames: [], lessonType: '', status: -2 },
+    ],
+    ...overrides,
+  };
+}
+
+test('normalizeTimetable drops undated rows and maps fields', () => {
+  const { sessions, classes } = normalizeTimetable([cls()], '20261');
+  assert.strictEqual(classes.length, 1);
+  assert.strictEqual(sessions.length, 1);
+  const s = sessions[0];
+  assert.strictEqual(s.id, '100');
+  assert.strictEqual(s.dateKey, '2026-09-03');
+  assert.strictEqual(s.weekday, 3);
+  assert.strictEqual(s.startTime, '13:00');
+  assert.strictEqual(s.endTime, '15:45');
+  assert.strictEqual(s.place, 'A30-1');
+});
+
+test('diffSessions detects room change, re-created ids, additions and removals', () => {
+  const base = normalizeTimetable([cls()], '20261').sessions;
+  const moved = normalizeTimetable([cls({ _calendars: [{ ...cls()._calendars[0], place: '2H-8' }] })], '20261').sessions;
+  let d = diffSessions(base, moved);
+  assert.strictEqual(d.changed.length, 1);
+  assert.strictEqual(d.changed[0].fields[0].label, 'room');
+
+  const recreated = normalizeTimetable([cls({ _calendars: [{ ...cls()._calendars[0], id: 999 }] })], '20261').sessions;
+  d = diffSessions(base, recreated);
+  assert.strictEqual(d.total, 0);
+
+  const extra = normalizeTimetable([cls({ _calendars: [...cls()._calendars, { ...cls()._calendars[0], id: 200, date: 1788973200000, day: 5 }] })], '20261').sessions;
+  d = diffSessions(base, extra);
+  assert.strictEqual(d.added.length, 1);
+  d = diffSessions(extra, base);
+  assert.strictEqual(d.removed.length, 1);
+  const desc = describeDiff(d, { semester: '20261' });
+  assert.match(desc.title, /1 removed/);
+  assert.strictEqual(desc.lines[0].kind, '-');
+});
+
+test('chunk splits long text on line boundaries', () => {
+  const parts = chunk(Array.from({ length: 50 }, (_, i) => `line ${i} ${'x'.repeat(40)}`).join('\n'), 500);
+  assert.ok(parts.length > 1);
+  for (const p of parts) assert.ok(p.length <= 500);
+});

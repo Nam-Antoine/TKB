@@ -1,0 +1,22 @@
+{
+  "name": "usth-timetable-tauri",
+  "productName": "USTH Timetable",
+  "version": "1.1.0",
+  "private": true,
+  "type": "module",
+  "description": "USTH student timetable viewer (Tauri 2 / WebView2) with change detection, phone notifications and self-update",
+  "author": "Tran Khoa Nam",
+  "license": "MIT",
+  "scripts": {
+    "dev": "tauri dev",
+    "build": "tauri build",
+    "release": "node scripts/build-release.js",
+    "latest-json": "node scripts/make-latest-json.js",
+    "icons": "tauri icon ../assets/icon.png -o src-tauri/icons",
+    "tauri": "tauri",
+    "test": "node --test"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.11.4"
+  }
+}

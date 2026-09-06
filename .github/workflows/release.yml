@@ -1,0 +1,45 @@
+# Builds, signs and publishes the Windows installer whenever a tag like v1.2.0 is pushed.
+# Installed copies pick the release up through latest.json (see README, "Releasing a new version").
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: tauri/package-lock.json
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: tauri/src-tauri
+
+      - run: npm ci
+        working-directory: tauri
+
+      - uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        with:
+          projectPath: tauri
+          tagName: ${{ github.ref_name }}
+          releaseName: 'USTH Timetable ${{ github.ref_name }}'
+          releaseBody: 'Installed copies update themselves within 6 hours. Manual install: download the *-setup.exe below.'
+          releaseDraft: false
+          prerelease: false
+          includeUpdaterJson: true

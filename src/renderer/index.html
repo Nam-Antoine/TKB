@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:;" />
+  <title>USTH Timetable</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="logo">📅</span>
+      <div>
+        <div class="title">USTH Timetable</div>
+        <div class="subtitle" id="user-line">Not signed in</div>
+      </div>
+    </div>
+    <div class="status" id="status-line"></div>
+    <div class="actions">
+      <select id="semester-select" title="Semester"></select>
+      <button id="btn-refresh" class="btn" title="Check the portal now">Refresh</button>
+      <button id="btn-changes" class="btn" title="Change log">Changes <span class="badge" id="changes-badge" hidden>0</span></button>
+      <button id="btn-settings" class="btn" title="Settings">Settings</button>
+      <button id="btn-login" class="btn primary">Sign in</button>
+    </div>
+  </header>
+
+  <div class="banner" id="banner" hidden></div>
+
+  <main id="main">
+    <section class="toolbar">
+      <div class="nav">
+        <button class="btn" id="btn-prev" title="Previous week">‹</button>
+        <button class="btn" id="btn-today">Today</button>
+        <button class="btn" id="btn-next" title="Next week">›</button>
+        <span class="week-label" id="week-label"></span>
+      </div>
+      <div class="view-switch">
+        <button class="btn seg active" data-view="week">Week</button>
+        <button class="btn seg" data-view="agenda">Agenda</button>
+        <button class="btn seg" data-view="classes">Classes</button>
+      </div>
+    </section>
+
+    <section id="view-week" class="view">
+      <div class="week-grid" id="week-grid"></div>
+    </section>
+    <section id="view-agenda" class="view" hidden>
+      <div class="agenda" id="agenda"></div>
+    </section>
+    <section id="view-classes" class="view" hidden>
+      <div class="classes" id="classes"></div>
+    </section>
+
+    <section id="empty" class="empty" hidden>
+      <div class="empty-card">
+        <h2>Sign in to the USTH student portal</h2>
+        <p>The app opens the real portal login page in a window. After you sign in, it reads your timetable through the portal's own API, keeps checking it in the background, and notifies you when anything changes.</p>
+        <button class="btn primary big" id="btn-login-2">Sign in</button>
+      </div>
+    </section>
+  </main>
+
+  <aside class="drawer" id="drawer-changes" hidden>
+    <div class="drawer-head">
+      <h3>Change log</h3>
+      <div>
+        <button class="btn small" id="btn-clear-changes">Clear</button>
+        <button class="btn small" id="btn-close-changes">Close</button>
+      </div>
+    </div>
+    <div class="drawer-body" id="changes-list"></div>
+  </aside>
+
+  <div class="modal" id="modal-settings" hidden>
+    <div class="modal-card">
+      <div class="modal-head"><h3>Settings</h3><button class="btn small" id="btn-close-settings">Close</button></div>
+      <form id="settings-form" class="settings">
+        <fieldset>
+          <legend>General</legend>
+          <label>Check the portal every <input type="number" name="pollMinutes" min="5" max="1440" step="5" /> minutes</label>
+          <label>Course names <select name="language"><option value="en">English</option><option value="vi">Vietnamese</option></select></label>
+          <label><input type="checkbox" name="desktopNotifications" /> Show desktop notifications</label>
+          <label><input type="checkbox" name="launchAtStartup" /> Start with Windows (hidden in the tray)</label>
+          <label><input type="checkbox" name="closeToTray" /> Keep running in the tray when the window is closed</label>
+          <label><input type="checkbox" name="notifyOnAuthExpired" /> Also send a phone notification when the portal session expires</label>
+        </fieldset>
+        <fieldset>
+          <legend>Phone push via ntfy <span class="hint">(install the free ntfy app, subscribe to the topic below)</span></legend>
+          <label><input type="checkbox" name="webhooks.ntfy.enabled" /> Enabled</label>
+          <label>Server <input type="url" name="webhooks.ntfy.server" placeholder="https://ntfy.sh" /></label>
+          <label>Topic <input type="text" name="webhooks.ntfy.topic" placeholder="usth-tkb-xxxxxxxx" /></label>
+          <label>Access token (optional) <input type="password" name="webhooks.ntfy.token" /></label>
+        </fieldset>
+        <fieldset>
+          <legend>Discord webhook</legend>
+          <label><input type="checkbox" name="webhooks.discord.enabled" /> Enabled</label>
+          <label>Webhook URL <input type="url" name="webhooks.discord.url" placeholder="https://discord.com/api/webhooks/..." /></label>
+        </fieldset>
+        <fieldset>
+          <legend>Telegram bot</legend>
+          <label><input type="checkbox" name="webhooks.telegram.enabled" /> Enabled</label>
+          <label>Bot token <input type="password" name="webhooks.telegram.botToken" /></label>
+          <label>Chat id <input type="text" name="webhooks.telegram.chatId" /></label>
+        </fieldset>
+        <fieldset>
+          <legend>Generic webhook <span class="hint">(POST JSON; optional HMAC-SHA256 signature in X-TKB-Signature)</span></legend>
+          <label><input type="checkbox" name="webhooks.generic.enabled" /> Enabled</label>
+          <label>URL <input type="url" name="webhooks.generic.url" placeholder="https://example.com/hook" /></label>
+          <label>Secret (optional) <input type="password" name="webhooks.generic.secret" /></label>
+        </fieldset>
+        <div class="modal-actions">
+          <span id="settings-msg" class="hint"></span>
+          <button type="button" class="btn" id="btn-test-notify">Send test notification</button>
+          <button type="submit" class="btn primary">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="modal" id="modal-session" hidden>
+    <div class="modal-card narrow">
+      <div class="modal-head"><h3 id="session-title">Session</h3><button class="btn small" id="btn-close-session">Close</button></div>
+      <dl class="details" id="session-details"></dl>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

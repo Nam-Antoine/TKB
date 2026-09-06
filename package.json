@@ -1,0 +1,38 @@
+{
+  "name": "usth-timetable",
+  "productName": "USTH Timetable",
+  "version": "1.0.0",
+  "description": "Desktop viewer for the USTH student timetable with change detection and phone notifications",
+  "main": "src/main.js",
+  "author": "Tran Khoa Nam",
+  "license": "MIT",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "probe": "node scripts/probe.js",
+    "icons": "node scripts/make-icon.js",
+    "test": "node --test",
+    "predist": "node scripts/make-icon.js",
+    "dist": "electron-builder --win",
+    "dist:portable": "electron-builder --win portable"
+  },
+  "devDependencies": {
+    "electron": "^44.2.0",
+    "electron-builder": "^26.15.3"
+  },
+  "build": {
+    "appId": "vn.edu.usth.timetable",
+    "productName": "USTH Timetable",
+    "directories": { "output": "dist" },
+    "files": ["src/**/*", "assets/**/*", "package.json"],
+    "win": {
+      "target": ["nsis", "portable"],
+      "icon": "assets/icon.ico"
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "createDesktopShortcut": true
+    }
+  }
+}
