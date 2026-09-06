@@ -1,7 +1,7 @@
 {
   "name": "usth-timetable-tauri",
   "productName": "USTH Timetable",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "private": true,
   "type": "module",
   "description": "USTH student timetable viewer (Tauri 2 / WebView2) with change detection, phone notifications and self-update",
