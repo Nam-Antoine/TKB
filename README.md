@@ -13,7 +13,7 @@ Open the [latest release](https://github.com/Nam-Antoine/TKB/releases/latest) an
 3. Every evening at 20:00 the app tells you what you have tomorrow, and every morning at 07:00 what you have today: one notification listing that day's sessions with time, room and teacher (or "no class"), on the desktop and on the phone targets. Each has its own time, "also tell me when there is no class" switch and *Send now* button in Settings → *Tomorrow's timetable* and *Today's timetable*.
 4. Optional: Settings → *Phone push via ntfy* to get the changes on your phone (install the free ntfy app, subscribe to the topic shown, press *Send test notification*). Discord, Telegram and generic webhooks work too.
 
-Views: **Month** (the portal's own layout: a month calendar with a dot on every day that has class and the selected day's sessions next to it), **Day** (cards for one day, with a week strip on top), **Week** (period grid), **Agenda** (whole semester as a list) and **Classes**. Every change found between two checks lands in the change log (bell icon).
+Views: **Month** (the portal's own layout: a month calendar with a dot on every day that has class and the selected day's sessions next to it), **Day** (cards for one day, with a week strip on top), **Week** (period grid), **Agenda** (whole semester as a list) and **Classes** (one row per class with how many lessons are done and, per subject and overall, how many are still left). Every change found between two checks lands in the change log (bell icon).
 
 The whole app, the change log, the tray menu and the notifications are available in **English and Vietnamese**: the EN / VI switch at the top right changes the language at any time (the first start follows the Windows display language).
 

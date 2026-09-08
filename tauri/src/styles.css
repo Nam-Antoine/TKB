@@ -149,6 +149,27 @@ main { flex: 1; display: flex; flex-direction: column; min-height: 0; padding: 1
 .classes table { width: 100%; border-collapse: collapse; }
 .classes th, .classes td { text-align: left; padding: 8px; border-bottom: 1px solid var(--border); font-size: 13px; }
 .classes th { color: var(--muted); font-weight: 600; }
+.classes .left-n { font-size: 15px; color: var(--accent, #2563eb); }
+.classes .muted { color: var(--muted); }
+.classes tr.class-done td { opacity: 0.55; }
+.classes .prog-cell { display: flex; align-items: center; gap: 8px; }
+.classes .prog-cell .muted { font-size: 12px; white-space: nowrap; }
+
+.classes-summary {
+  display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+  padding: 12px 14px; margin-bottom: 12px;
+  background: var(--panel); border: 1px solid var(--border); border-radius: 12px;
+}
+.classes-summary b { font-size: 15px; }
+.classes-summary span { color: var(--muted); font-size: 13px; }
+.classes-summary.done b { color: #16a34a; }
+
+.pbar {
+  flex: 1; min-width: 90px; max-width: 220px; height: 8px;
+  background: var(--border); border-radius: 999px; overflow: hidden;
+}
+.pbar i { display: block; height: 100%; background: var(--accent, #2563eb); border-radius: 999px; transition: width .3s; }
+.classes-summary .pbar { max-width: none; }
 
 .empty { flex: 1; display: flex; align-items: center; justify-content: center; }
 .empty-card { max-width: 520px; text-align: center; background: var(--panel); border: 1px solid var(--border); border-radius: 14px; padding: 32px; }

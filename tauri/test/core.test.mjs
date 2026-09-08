@@ -6,6 +6,7 @@ import { diffSessions, describeDiff } from '../src/lib/diff.js';
 import { chunk } from '../src/lib/notify.js';
 import { sanitizeConfig, reminderDue, normalizeTime } from '../src/lib/config.js';
 import { tomorrowKey, todayKey, digestDue, morningDue, buildDigest } from '../src/lib/digest.js';
+import { classProgress, overallProgress, sessionEndMs } from '../src/lib/progress.js';
 
 test('encrypt/decrypt round trip', async () => {
   const obj = { fromTime: 1, toTime: 2, semester: '20261', weeks: [1, 2], name: 'Tiếng Việt' };
@@ -210,4 +211,35 @@ test('buildDigest speaks of "today" for the morning briefing', () => {
   const none = buildDigest([], '2026-09-06', 'en', 'today');
   assert.strictEqual(none.title, 'Today, Sun 6 Sep: no class');
   assert.strictEqual(none.text, 'Nothing on the timetable for today (Sun 6 Sep).');
+});
+
+test('classProgress counts done/left per class, excludes cancelled, ignores ongoing', () => {
+  const s = (o) => ({ id: 'x', classId: 'C1', courseId: 'CID', dateKey: '2026-09-07', endTime: '09:15', status: 1, ...o });
+  const now = new Date(2026, 8, 10, 12, 0).getTime(); // Thu 10 Sep 2026, noon
+  const sessions = [
+    s({ id: 'a', dateKey: '2026-09-07' }),               // C1 past -> done
+    s({ id: 'b', dateKey: '2026-09-14' }),               // C1 future -> left
+    s({ id: 'c', dateKey: '2026-09-21' }),               // C1 future -> left
+    s({ id: 'd', classId: 'C2', dateKey: '2026-09-07' }), // C2 past -> done
+    s({ id: 'e', classId: 'C2', dateKey: '2026-09-05', status: 5 }), // cancelled -> ignored
+    s({ id: 'f', classId: 'C3', dateKey: '2026-09-10', startTime: '11:00', endTime: '13:00' }), // ongoing at noon -> left
+  ];
+  const prog = classProgress(sessions, now);
+  assert.deepStrictEqual(
+    { ...prog.get('C1'), courseId: undefined },
+    { classId: 'C1', courseId: undefined, total: 3, done: 1, left: 2, nextKey: '2026-09-14' },
+  );
+  assert.strictEqual(prog.get('C2').left, 0);
+  assert.strictEqual(prog.get('C2').total, 1); // cancelled one not counted
+  assert.strictEqual(prog.get('C3').left, 1);  // ongoing counts as still to come
+  assert.strictEqual(prog.get('C3').nextKey, '2026-09-10');
+
+  const totals = overallProgress(sessions, now);
+  assert.deepStrictEqual(totals, { total: 5, done: 2, left: 3, classesLeft: 2 });
+});
+
+test('sessionEndMs falls back to end of day without a time', () => {
+  assert.strictEqual(sessionEndMs({ dateKey: '2026-09-07', endTime: '09:15' }), new Date(2026, 8, 7, 9, 15).getTime());
+  assert.strictEqual(sessionEndMs({ dateKey: '2026-09-07' }), new Date(2026, 8, 7, 23, 59).getTime());
+  assert.strictEqual(sessionEndMs({ dateKey: '' }), 0);
 });

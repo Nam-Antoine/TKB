@@ -4853,7 +4853,7 @@ dependencies = [
 
 [[package]]
 name = "usth-timetable"
-version = "1.4.7"
+version = "1.5.0"
 dependencies = [
  "keyring",
  "reqwest 0.12.28",

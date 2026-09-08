@@ -1,5 +1,6 @@
 import { tkb, boot } from './core.js';
 import { t, setLang, getLang, applyDom, dayNames, fmtDayShort, fmtDateLong, fmtMonthTitle, sessionCount } from './lib/i18n.js';
+import { classProgress, overallProgress } from './lib/progress.js';
 
 const PERIODS = [
   ['07:30', '08:20'], ['08:25', '09:15'], ['09:25', '10:15'], ['10:25', '11:15'], ['11:20', '12:10'],
@@ -370,16 +371,38 @@ function renderAgenda() {
   if (target) target.scrollIntoView({ block: 'start' });
 }
 
+/** A small "done / total" bar; `left` sessions are still to come. */
+function progressBar(done, total) {
+  const pct = total ? Math.round((done / total) * 100) : 0;
+  return `<div class="pbar" title="${esc(t('progressOf', { done, total }))}"><i style="width:${pct}%"></i></div>`;
+}
+
 function renderClasses() {
   const box = $('classes');
   const classes = state.classes || [];
   if (!classes.length) { box.innerHTML = `<p class="hint">${esc(t('noClasses'))}</p>`; return; }
+  const now = Date.now();
+  const prog = classProgress(state.sessions || [], now);
+  const totals = overallProgress(state.sessions || [], now);
+
+  const summary = totals.left
+    ? `<div class="classes-summary"><b>${esc(t('lessonsLeftSummary', { left: totals.left, total: totals.total }))}</b>`
+      + `<span>${esc(t('subjectsRemaining', { n: totals.classesLeft, m: prog.size }))}</span>`
+      + progressBar(totals.done, totals.total) + `</div>`
+    : `<div class="classes-summary done"><b>${esc(t('allDone'))}</b>${progressBar(totals.total, totals.total)}</div>`;
+
   const rows = classes.map((c) => {
     const [, border] = colorFor(c.courseId);
+    const p = prog.get(c.classId) || { total: c.sessionCount, done: 0, left: 0 };
     const next = (state.sessions || []).find((s) => s.classId === c.classId && s.dateKey >= keyOf(new Date()));
-    return `<tr><td><span class="swatch" style="display:inline-block;width:10px;height:10px;border-radius:3px;background:${border};margin-right:8px"></span>${esc(c.classId)}</td><td>${esc(courseName(c))}</td><td>${esc(c.classType)}</td><td>${c.sessionCount}</td><td>${next ? `${esc(fmtLong(next.dateKey))} ${esc(next.startTime)} · ${esc(next.place)}` : '—'}</td></tr>`;
+    const leftCell = p.left ? `<b class="left-n">${p.left}</b>` : `<span class="muted">0</span>`;
+    return `<tr class="${p.left ? '' : 'class-done'}"><td><span class="swatch" style="display:inline-block;width:10px;height:10px;border-radius:3px;background:${border};margin-right:8px"></span>${esc(c.classId)}</td>`
+      + `<td>${esc(courseName(c))}</td><td>${esc(c.classType)}</td>`
+      + `<td>${leftCell}</td>`
+      + `<td class="prog-cell">${progressBar(p.done, p.total)}<span class="muted">${esc(t('progressOf', { done: p.done, total: p.total }))}</span></td>`
+      + `<td>${next ? `${esc(fmtLong(next.dateKey))} ${esc(next.startTime)} · ${esc(next.place)}` : '—'}</td></tr>`;
   });
-  box.innerHTML = `<table><thead><tr><th>${esc(t('colClass'))}</th><th>${esc(t('colCourse'))}</th><th>${esc(t('colType'))}</th><th>${esc(t('colSessions'))}</th><th>${esc(t('colNext'))}</th></tr></thead><tbody>${rows.join('')}</tbody></table>`;
+  box.innerHTML = summary + `<table><thead><tr><th>${esc(t('colClass'))}</th><th>${esc(t('colCourse'))}</th><th>${esc(t('colType'))}</th><th>${esc(t('colLeft'))}</th><th>${esc(t('colProgress'))}</th><th>${esc(t('colNext'))}</th></tr></thead><tbody>${rows.join('')}</tbody></table>`;
 }
 
 function renderView() {
