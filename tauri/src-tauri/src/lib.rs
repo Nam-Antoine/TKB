@@ -99,7 +99,37 @@ fn is_portal_host(url: &str) -> bool {
 /// auth cookie back in open_login, whichever way the sign-in actually went.
 fn login_init_script() -> String {
     r#"(function () {
-  if (location.hostname !== 'erp.usth.edu.vn') return;
+  var host = location.hostname;
+
+  // ---- Google's own OAuth pages: auto-pick the USTH account ----
+  // The login window shares a persistent WebView2 profile, so after one real
+  // Google sign-in the session stays alive here. The only step left is the
+  // account chooser, so click the USTH tile and the whole login completes with
+  // no clicks. First-ever sign-in (email + password, and one consent) is still
+  // typed by the user; we never touch those fields.
+  if (host === 'accounts.google.com') {
+    try { if (sessionStorage.getItem('tkbGAcctPicked')) return; } catch (e) {}
+    var tries = 0;
+    var poll = setInterval(function () {
+      if (++tries > 40) { clearInterval(poll); return; }
+      // Chooser tiles carry the account address in data-identifier.
+      var tiles = document.querySelectorAll('[data-identifier]');
+      if (!tiles.length) return;
+      var pick = null;
+      for (var i = 0; i < tiles.length; i++) {
+        var id = (tiles[i].getAttribute('data-identifier') || '').toLowerCase();
+        if (id.indexOf('usth') !== -1) { pick = tiles[i]; break; }
+      }
+      if (!pick && tiles.length === 1) pick = tiles[0]; // only one account: it is the one
+      if (!pick) { clearInterval(poll); return; } // several non-USTH accounts: let the user choose
+      clearInterval(poll);
+      try { sessionStorage.setItem('tkbGAcctPicked', '1'); } catch (e) {}
+      pick.click();
+    }, 250);
+    return;
+  }
+
+  if (host !== 'erp.usth.edu.vn') return;
   if (!/^\/sso\//.test(location.pathname)) {
     // Signed-out visitors land on the public home page; press its "Log in"
     // control so the window goes to the SSO login page.
