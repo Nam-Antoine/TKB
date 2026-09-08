@@ -4,7 +4,8 @@ import { createHash } from 'node:crypto';
 import { encryptPayload, decryptPayload, checksum, normalizeTimetable, periodToTime, parseJwt } from '../src/lib/usth-api.js';
 import { diffSessions, describeDiff } from '../src/lib/diff.js';
 import { chunk } from '../src/lib/notify.js';
-import { sanitizeConfig, reminderDue } from '../src/lib/config.js';
+import { sanitizeConfig, reminderDue, normalizeTime } from '../src/lib/config.js';
+import { tomorrowKey, digestDue, buildDigest } from '../src/lib/digest.js';
 
 test('encrypt/decrypt round trip', async () => {
   const obj = { fromTime: 1, toTime: 2, semester: '20261', weeks: [1, 2], name: 'Tiếng Việt' };
@@ -139,4 +140,50 @@ test('reminderDue: first notice always, repeats after the interval, quiet at nig
   const night = new Date(2026, 8, 7, 2, 0).getTime();
   assert.strictEqual(reminderDue(night - 8 * H, 4, night), false);
   assert.strictEqual(reminderDue(0, 4, night), true);
+});
+
+test('digest settings default on at 20:00 and accept only times of day', () => {
+  assert.deepStrictEqual(sanitizeConfig({}).digest, { enabled: true, time: '20:00', whenEmpty: true });
+  assert.strictEqual(sanitizeConfig({ digest: { time: '7:5' } }).digest.time, '20:00');
+  assert.strictEqual(sanitizeConfig({ digest: { time: '7:05' } }).digest.time, '07:05');
+  assert.strictEqual(sanitizeConfig({ digest: { time: '24:00' } }).digest.time, '20:00');
+  assert.strictEqual(sanitizeConfig({ digest: { enabled: 0, whenEmpty: 'x' } }).digest.enabled, false);
+  assert.strictEqual(normalizeTime(' 21:30 '), '21:30');
+  assert.strictEqual(normalizeTime('nope'), null);
+});
+
+test('digestDue: after the set time, once per tomorrow, catches up late', () => {
+  const at = (h, m) => new Date(2026, 8, 6, h, m).getTime(); // Sun 6 Sep 2026
+  assert.strictEqual(tomorrowKey(at(20, 0)), '2026-09-07');
+  assert.strictEqual(digestDue(null, '20:00', at(19, 59)), false);
+  assert.strictEqual(digestDue(null, '20:00', at(20, 0)), true);
+  assert.strictEqual(digestDue('2026-09-07', '20:00', at(20, 1)), false); // already sent for tomorrow
+  assert.strictEqual(digestDue('2026-09-06', '20:00', at(23, 30)), true); // yesterday's notice, PC was asleep at 20:00
+  assert.strictEqual(digestDue('2026-09-07', '20:00', new Date(2026, 8, 7, 0, 30).getTime()), false); // past midnight: not yet 20:00 of the new day
+});
+
+test('buildDigest lists tomorrow in order, marks cancelled and exams, speaks Vietnamese', () => {
+  const s = (o) => ({ id: 'x', classId: 'C1', courseId: 'CID', courseName: 'Giải tích', courseNameEn: 'Calculus', dateKey: '2026-09-07', from: 1, to: 2, startTime: '07:30', endTime: '09:15', place: 'R1', teachers: ['A'], status: 1, isExam: false, ...o });
+  const sessions = [
+    s({ id: 'b', from: 6, to: 8, startTime: '13:00', endTime: '15:45', classId: 'C2', courseNameEn: 'Physics', courseName: 'Vật lý', status: 5 }),
+    s({ id: 'a' }),
+    s({ id: 'c', dateKey: '2026-09-08' }),
+    s({ id: 'd', from: 9, to: 10, startTime: '15:55', endTime: '17:40', classId: 'C3', isExam: true, teachers: [] }),
+  ];
+  const en = buildDigest(sessions, '2026-09-07', 'en');
+  assert.strictEqual(en.count, 2);
+  assert.strictEqual(en.title, 'Tomorrow, Mon 7 Sep: 2 sessions');
+  assert.deepStrictEqual(en.lines, [
+    '07:30-09:15 · Calculus (C1) · R1 · A',
+    '13:00-15:45 · Physics (C2) · R1 · A · (cancelled)',
+    '15:55-17:40 · EXAM: Calculus (C3) · R1',
+  ]);
+  const vi = buildDigest(sessions, '2026-09-07', 'vi');
+  assert.strictEqual(vi.title, 'Ngày mai, T2 07/09: 2 buổi học');
+  assert.ok(vi.lines[0].startsWith('07:30-09:15 · Giải tích (C1)'));
+  assert.ok(vi.lines[1].endsWith('(đã huỷ)'));
+  const none = buildDigest(sessions, '2026-09-13', 'en');
+  assert.strictEqual(none.count, 0);
+  assert.strictEqual(none.title, 'Tomorrow, Sun 13 Sep: no class');
+  assert.strictEqual(none.text, 'Nothing on the timetable for tomorrow (Sun 13 Sep).');
 });

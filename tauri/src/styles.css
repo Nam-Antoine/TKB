@@ -189,10 +189,12 @@ main { flex: 1; display: flex; flex-direction: column; min-height: 0; padding: 1
 .settings fieldset { border: 1px solid var(--border); border-radius: 10px; margin: 10px 0; padding: 8px 12px 12px; }
 .settings legend { font-weight: 600; padding: 0 6px; }
 .settings label { display: flex; align-items: center; gap: 8px; margin: 6px 0; }
-.settings label input[type="text"], .settings label input[type="url"], .settings label input[type="password"], .settings label input[type="number"], .settings label select {
+.settings label input[type="text"], .settings label input[type="url"], .settings label input[type="password"], .settings label input[type="number"], .settings label input[type="time"], .settings label select {
   flex: 1; padding: 6px 8px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg);
 }
 .settings label input[type="number"] { flex: 0 0 90px; }
+.settings label input[type="time"] { flex: 0 0 130px; }
+@media (prefers-color-scheme: dark) { .settings label input[type="time"] { color-scheme: dark; } }
 .hint { color: var(--muted); font-weight: 400; font-size: 12px; }
 .modal-actions { display: flex; justify-content: flex-end; align-items: center; gap: 10px; margin-top: 8px; }
 .details { padding: 12px 16px; margin: 0; display: grid; grid-template-columns: 110px 1fr; gap: 6px 10px; }

@@ -10,7 +10,8 @@ Open the [latest release](https://github.com/Nam-Antoine/TKB/releases/latest) an
 
 1. Press **Sign in**. The real portal login page opens with the account already filled in; type the password and tick the captcha.
 2. Done. The timetable loads, the app keeps checking every 30 minutes (also from the tray when the window is closed), renews the portal session by itself and installs new versions on its own. When the portal ends the session for good, the app tells you with a desktop notification (and a phone push if enabled), repeats the reminder every 4 hours until you sign in again, and says so in its window and tray tooltip. The interval is in Settings (0 = notify only once).
-3. Optional: Settings → *Phone push via ntfy* to get the changes on your phone (install the free ntfy app, subscribe to the topic shown, press *Send test notification*). Discord, Telegram and generic webhooks work too.
+3. Every evening at 20:00 the app tells you what you have tomorrow: one notification listing the next day's sessions with time, room and teacher (or "no class"), on the desktop and on the phone targets. The time, the "nothing tomorrow" notice and a *Send now* button are in Settings → *Tomorrow's timetable*.
+4. Optional: Settings → *Phone push via ntfy* to get the changes on your phone (install the free ntfy app, subscribe to the topic shown, press *Send test notification*). Discord, Telegram and generic webhooks work too.
 
 Views: **Month** (the portal's own layout: a month calendar with a dot on every day that has class and the selected day's sessions next to it), **Day** (cards for one day, with a week strip on top), **Week** (period grid), **Agenda** (whole semester as a list) and **Classes**. Every change found between two checks lands in the change log (bell icon).
 

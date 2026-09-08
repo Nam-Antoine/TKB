@@ -129,6 +129,13 @@
           <label><span data-i18n="remindEvery">Remind me again every</span> <input type="number" name="reloginRemindHours" min="0" max="168" step="1" /> <span data-i18n="hoursUntilSignIn">hours until I sign in (0 = only once)</span></label>
         </fieldset>
         <fieldset>
+          <legend data-i18n="digestLegend">Tomorrow's timetable</legend>
+          <label><input type="checkbox" name="digest.enabled" /> <span data-i18n="digestEnabled">Every evening, tell me what I have tomorrow (desktop notification and the phone targets below)</span></label>
+          <label><span data-i18n="digestAt">Send at</span> <input type="time" name="digest.time" step="300" /></label>
+          <label><input type="checkbox" name="digest.whenEmpty" /> <span data-i18n="digestWhenEmpty">Also tell me when there is no class tomorrow</span></label>
+          <div class="modal-actions" style="justify-content:flex-start"><button type="button" class="btn small" id="btn-digest-now" data-i18n="digestSendNow">Send tomorrow's timetable now</button> <span id="digest-msg" class="hint"></span></div>
+        </fieldset>
+        <fieldset>
           <legend data-i18n="portalAccount">Portal account</legend>
           <label><span data-i18n="account">Account</span> <input type="text" name="_account" value="namtk2410702" readonly data-i18n-title="accountTitle" title="This app is built for this account; it is pre-filled on the portal login page" /> <button type="button" class="btn small" id="btn-relogin" data-i18n="signInAgain" data-i18n-title="signInAgainHint" title="Open the portal login page again">Sign in again</button></label>
           <label><span data-i18n="password">Password</span> <input type="password" name="_password" autocomplete="off" placeholder="optional" /> <button type="button" class="btn small" id="btn-forget-password" data-i18n="forget">Forget</button></label>

@@ -472,6 +472,7 @@ function fillSettings() {
   }
   $('settings-msg').textContent = '';
   $('update-msg').textContent = '';
+  $('digest-msg').textContent = '';
   $('about-line').textContent = t('about', { v: state && state.version ? state.version : '', a: state ? state.defaultAccount : 'namtk2410702' });
 }
 
@@ -563,6 +564,16 @@ function bind() {
         if (res && res.status === 'failed') $('update-msg').textContent = t('installFailed', { e: res.error });
       });
     }
+  });
+  $('btn-digest-now').addEventListener('click', async () => {
+    $('digest-msg').textContent = t('savingSending');
+    config = await tkb.setConfig(readSettings());
+    applyLanguage();
+    const r = await tkb.sendDigest();
+    if (!r || r.status !== 'sent') $('digest-msg').textContent = t('digestNoData');
+    else $('digest-msg').textContent = r.results.length
+      ? r.results.map((x) => `${x.target}: ${x.ok ? t('sent') : t('failedWith', { e: x.error })}`).join(' · ')
+      : t('desktopOnly');
   });
   $('btn-test-notify').addEventListener('click', async () => {
     $('settings-msg').textContent = t('savingSending');

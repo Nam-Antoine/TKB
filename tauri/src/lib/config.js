@@ -6,6 +6,7 @@ export const DEFAULT_CONFIG = Object.freeze({
   desktopNotifications: true,
   notifyOnAuthExpired: true,
   reloginRemindHours: 4, // repeat the "sign in again" notice this often; 0 = only once
+  digest: { enabled: true, time: '20:00', whenEmpty: true }, // evening "tomorrow you have…" notice
   launchAtStartup: false,
   startMinimized: false,
   closeToTray: true,
@@ -48,6 +49,15 @@ export function reminderDue(lastAt, hours, now = Date.now()) {
   return h >= 7 && h < 23;
 }
 
+/** "H:MM" / "HH:MM" (24 h) -> "HH:MM"; null when it is not a time of day. */
+export function normalizeTime(str) {
+  const m = /^\s*(\d{1,2}):(\d{2})\s*$/.exec(String(str ?? ''));
+  if (!m) return null;
+  const h = Number(m[1]), min = Number(m[2]);
+  if (h > 23 || min > 59) return null;
+  return `${String(h).padStart(2, '0')}:${m[2]}`;
+}
+
 export function sanitizeConfig(cfg) {
   const out = deepMerge(DEFAULT_CONFIG, cfg || {});
   out.pollMinutes = Math.min(1440, Math.max(5, Number(out.pollMinutes) || 30));
@@ -56,6 +66,10 @@ export function sanitizeConfig(cfg) {
   out.reloginRemindHours = Number.isFinite(remind) ? Math.min(168, Math.max(0, Math.round(remind))) : DEFAULT_CONFIG.reloginRemindHours;
   for (const k of ['desktopNotifications', 'notifyOnAuthExpired', 'launchAtStartup', 'startMinimized', 'closeToTray']) out[k] = !!out[k];
   out.semester = String(out.semester || '');
+  out.digest = { ...out.digest }; // never write into the shared default object
+  out.digest.enabled = !!out.digest.enabled;
+  out.digest.whenEmpty = !!out.digest.whenEmpty;
+  out.digest.time = normalizeTime(out.digest.time) || DEFAULT_CONFIG.digest.time;
   for (const t of Object.keys(DEFAULT_CONFIG.webhooks)) {
     const w = out.webhooks[t];
     w.enabled = !!w.enabled;
