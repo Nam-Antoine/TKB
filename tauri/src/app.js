@@ -521,7 +521,6 @@ function bind() {
   $('btn-close-settings').addEventListener('click', () => { $('modal-settings').hidden = true; });
   $('btn-changes').addEventListener('click', () => (changesOpen ? closeChanges() : openChanges()));
   $('btn-close-changes').addEventListener('click', closeChanges);
-  $('btn-clear-changes').addEventListener('click', async () => { await tkb.clearChanges(); await renderChanges(); });
   $('btn-close-session').addEventListener('click', () => { $('modal-session').hidden = true; });
   $('btn-prev').addEventListener('click', () => step(-1));
   $('btn-next').addEventListener('click', () => step(1));
