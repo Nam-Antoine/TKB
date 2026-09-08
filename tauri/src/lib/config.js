@@ -12,6 +12,7 @@ export const DEFAULT_CONFIG = Object.freeze({
   startMinimized: false,
   closeToTray: true,
   semester: '',
+  googleEmail: '', // USTH Google address, typed into Google's sign-in page for you
   webhooks: {
     ntfy: { enabled: false, server: 'https://ntfy.sh', topic: '', token: '' },
     discord: { enabled: false, url: '' },
@@ -67,6 +68,7 @@ export function sanitizeConfig(cfg) {
   out.reloginRemindHours = Number.isFinite(remind) ? Math.min(168, Math.max(0, Math.round(remind))) : DEFAULT_CONFIG.reloginRemindHours;
   for (const k of ['desktopNotifications', 'notifyOnAuthExpired', 'launchAtStartup', 'startMinimized', 'closeToTray']) out[k] = !!out[k];
   out.semester = String(out.semester || '');
+  out.googleEmail = String(out.googleEmail || '').trim();
   out.digest = { ...out.digest }; // never write into the shared default object
   out.digest.enabled = !!out.digest.enabled;
   out.digest.whenEmpty = !!out.digest.whenEmpty;

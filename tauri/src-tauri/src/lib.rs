@@ -97,34 +97,102 @@ fn is_portal_host(url: &str) -> bool {
 /// page this takes the Gmail / Google OAuth path (/sso/oauth2/authorization/google)
 /// instead of the qldt username+password form. Success is still detected by the new
 /// auth cookie back in open_login, whichever way the sign-in actually went.
-fn login_init_script() -> String {
-    r#"(function () {
-  var host = location.hostname;
+/// A safe JavaScript double-quoted string literal for `s`, so credentials can be
+/// embedded into the init script without breaking out of the string.
+fn js_string(s: &str) -> String {
+    let mut out = String::from("\"");
+    for c in s.chars() {
+        match c {
+            '\\' => out.push_str("\\\\"),
+            '"' => out.push_str("\\\""),
+            '\n' => out.push_str("\\n"),
+            '\r' => out.push_str("\\r"),
+            '\t' => out.push_str("\\t"),
+            '<' => out.push_str("\\u003c"),
+            '>' => out.push_str("\\u003e"),
+            c if (c as u32) < 0x20 => out.push_str(&format!("\\u{:04x}", c as u32)),
+            c => out.push(c),
+        }
+    }
+    out.push('"');
+    out
+}
 
-  // ---- Google's own OAuth pages: auto-pick the USTH account ----
+fn login_init_script(email: Option<&str>, password: Option<&str>) -> String {
+    const TEMPLATE: &str = r#"(function () {
+  var host = location.hostname;
+  var TKB_EMAIL = __TKB_EMAIL__;
+  var TKB_PASS = __TKB_PASS__;
+
+  // ---- Google's own sign-in pages: log in without showing the form ----
   // The login window shares a persistent WebView2 profile, so after one real
-  // Google sign-in the session stays alive here. The only step left is the
-  // account chooser, so click the USTH tile and the whole login completes with
-  // no clicks. First-ever sign-in (email + password, and one consent) is still
-  // typed by the user; we never touch those fields.
+  // Google sign-in the session survives here. We handle three pages:
+  //   * account chooser  -> click the USTH tile (no password needed)
+  //   * email page       -> type TKB_EMAIL and press Next
+  //   * password page    -> type TKB_PASS and press Next
+  // Anything Google throws in between (2FA, "verify it's you", a CAPTCHA) has no
+  // matching field, so the script just stops and lets the user finish by hand.
   if (host === 'accounts.google.com') {
-    try { if (sessionStorage.getItem('tkbGAcctPicked')) return; } catch (e) {}
+    function nativeSet(el, val) {
+      try {
+        var d = Object.getOwnPropertyDescriptor(Object.getPrototypeOf(el), 'value');
+        d.set.call(el, val);
+      } catch (e) { el.value = val; }
+      el.dispatchEvent(new Event('input', { bubbles: true }));
+      el.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+    function clickNext(sels, n) {
+      for (var i = 0; i < sels.length; i++) {
+        var b = document.querySelector(sels[i]);
+        if (b) { b.click(); if (n > 0) setTimeout(function () { clickNext(sels, n - 1); }, 350); return; }
+      }
+      if (n > 0) setTimeout(function () { clickNext(sels, n - 1); }, 350);
+    }
+    function once(flag) {
+      try { if (sessionStorage.getItem(flag)) return false; sessionStorage.setItem(flag, '1'); } catch (e) {}
+      return true;
+    }
     var tries = 0;
     var poll = setInterval(function () {
-      if (++tries > 40) { clearInterval(poll); return; }
-      // Chooser tiles carry the account address in data-identifier.
-      var tiles = document.querySelectorAll('[data-identifier]');
-      if (!tiles.length) return;
-      var pick = null;
-      for (var i = 0; i < tiles.length; i++) {
-        var id = (tiles[i].getAttribute('data-identifier') || '').toLowerCase();
-        if (id.indexOf('usth') !== -1) { pick = tiles[i]; break; }
+      if (++tries > 60) { clearInterval(poll); return; }
+
+      // Password page first, so the account chip it shows (also a
+      // data-identifier) is never mistaken for a chooser tile.
+      var pwd = document.querySelector('input[type=password][name=Passwd], input[type=password]');
+      if (pwd && pwd.offsetParent !== null) {
+        clearInterval(poll);
+        if (!TKB_PASS || !once('tkbPwdFilled')) return;
+        nativeSet(pwd, TKB_PASS);
+        setTimeout(function () { clickNext(['#passwordNext button', '#passwordNext'], 3); }, 200);
+        return;
       }
-      if (!pick && tiles.length === 1) pick = tiles[0]; // only one account: it is the one
-      if (!pick) { clearInterval(poll); return; } // several non-USTH accounts: let the user choose
-      clearInterval(poll);
-      try { sessionStorage.setItem('tkbGAcctPicked', '1'); } catch (e) {}
-      pick.click();
+
+      // Email page.
+      var em = document.querySelector('input[type=email], #identifierId, input[name=identifier]');
+      if (em && em.offsetParent !== null) {
+        clearInterval(poll);
+        if (!TKB_EMAIL || !once('tkbEmailFilled')) return;
+        nativeSet(em, TKB_EMAIL);
+        setTimeout(function () { clickNext(['#identifierNext button', '#identifierNext'], 3); }, 200);
+        return;
+      }
+
+      // Account chooser: pick the USTH tile (or the exact email, or the sole one).
+      var tiles = document.querySelectorAll('[data-identifier]');
+      if (tiles.length) {
+        var pick = null, want = (TKB_EMAIL || '').toLowerCase();
+        for (var i = 0; i < tiles.length; i++) {
+          var id = (tiles[i].getAttribute('data-identifier') || '').toLowerCase();
+          if (want && id === want) { pick = tiles[i]; break; }
+        }
+        if (!pick) for (var j = 0; j < tiles.length; j++) {
+          if ((tiles[j].getAttribute('data-identifier') || '').toLowerCase().indexOf('usth') !== -1) { pick = tiles[j]; break; }
+        }
+        if (!pick && tiles.length === 1) pick = tiles[0];
+        clearInterval(poll);
+        if (pick && once('tkbGAcctPicked')) pick.click();
+        return;
+      }
     }, 250);
     return;
   }
@@ -153,8 +221,10 @@ fn login_init_script() -> String {
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', go);
   else go();
-})();"#
-        .to_string()
+})();"#;
+    TEMPLATE
+        .replace("__TKB_EMAIL__", &js_string(email.unwrap_or("")))
+        .replace("__TKB_PASS__", &js_string(password.unwrap_or("")))
 }
 
 fn keyring_entry() -> Result<keyring::Entry, String> {
@@ -242,7 +312,7 @@ async fn clear_browsing_data(app: AppHandle) -> Result<(), String> {
 /// stays hidden and only gets a short time: the portal SPA re-runs SSO by
 /// itself when the 24 h token has expired but the SSO session is still alive.
 #[tauri::command]
-async fn open_login(app: AppHandle, state: State<'_, AppState>, silent: bool, title: Option<String>) -> Result<bool, String> {
+async fn open_login(app: AppHandle, state: State<'_, AppState>, silent: bool, title: Option<String>, google_email: Option<String>) -> Result<bool, String> {
     if let Some(existing) = app.get_webview_window(LOGIN_LABEL) {
         if !silent {
             let _ = existing.show();
@@ -252,7 +322,8 @@ async fn open_login(app: AppHandle, state: State<'_, AppState>, silent: bool, ti
         return Ok(false);
     }
     let before = auth_cookie_value(&app);
-    let script = login_init_script();
+    let password = saved_password();
+    let script = login_init_script(google_email.as_deref(), password.as_deref());
     let url = Url::parse(PORTAL_URL).map_err(err)?;
     let win = WebviewWindowBuilder::new(&app, LOGIN_LABEL, WebviewUrl::External(url))
         .title(title.as_deref().unwrap_or("Sign in to USTH student portal"))

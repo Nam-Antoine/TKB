@@ -487,9 +487,28 @@ function readSettings() {
   return out;
 }
 
+async function refreshGoogleField() {
+  const el = $('settings-form').elements['_gpassword'];
+  if (!el) return;
+  el.value = '';
+  let saved = false;
+  try { saved = await tkb.isPasswordSaved(); } catch (e) { saved = false; }
+  el.placeholder = t(saved ? 'passwordSavedPh' : 'passwordEmptyPh');
+}
+
+async function saveGooglePasswordIfTyped() {
+  const el = $('settings-form').elements['_gpassword'];
+  if (!el) return;
+  const v = el.value;
+  if (v === '') return; // untouched: keep whatever is stored
+  try { await tkb.savePassword(v); } catch (e) {}
+  el.value = '';
+}
+
 async function openSettings() {
   config = await tkb.getConfig();
   fillSettings();
+  await refreshGoogleField();
   $('modal-settings').hidden = false;
 }
 
@@ -517,10 +536,17 @@ function bind() {
   });
   $('settings-form').addEventListener('submit', async (e) => {
     e.preventDefault();
+    await saveGooglePasswordIfTyped();
     config = await tkb.setConfig(readSettings());
     applyLanguage();
+    await refreshGoogleField();
     $('settings-msg').textContent = t('saved');
     render();
+  });
+  $('btn-forget-google').addEventListener('click', async () => {
+    try { await tkb.savePassword(''); } catch (err) {}
+    await refreshGoogleField();
+    $('settings-msg').textContent = t('passwordRemoved');
   });
   $('btn-check-update').addEventListener('click', async () => {
     config = await tkb.setConfig(readSettings());

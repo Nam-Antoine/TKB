@@ -242,7 +242,7 @@ async function openLogin(silent) {
   state.loginOpen = !silent;
   await broadcast();
   try {
-    return await invoke('open_login', { silent, title: t('loginWindowTitle') });
+    return await invoke('open_login', { silent, title: t('loginWindowTitle'), googleEmail: config.googleEmail || '' });
   } finally {
     state.loginOpen = false;
     await broadcast();
@@ -429,6 +429,8 @@ export const tkb = {
   },
   sendDigest: () => sendBriefing({ kind: 'tomorrow', manual: true }),
   sendMorning: () => sendBriefing({ kind: 'today', manual: true }),
+  isPasswordSaved: () => invoke('password_saved'),
+  savePassword: (value) => invoke('password_set', { value }),
   openExternal: (url) => invoke('open_external', { url }),
   checkForUpdates: (opts) => checkForUpdates({ manual: true, install: false, ...opts }),
   installUpdate: () => checkForUpdates({ manual: true, install: true }),
