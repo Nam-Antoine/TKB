@@ -152,28 +152,37 @@ fn login_init_script(email: Option<&str>, password: Option<&str>) -> String {
       try { if (sessionStorage.getItem(flag)) return false; sessionStorage.setItem(flag, '1'); } catch (e) {}
       return true;
     }
+    // ONE long-lived poller for the whole Google sign-in. Google moves from the
+    // email page to the password page with a same-document (history) navigation,
+    // so the init script is NOT re-injected there — the poller must stay alive
+    // across that step and act on whichever field is currently on screen. Gating
+    // the *fill* on an empty value (not on a one-shot flag) survives React
+    // re-rendering the input after we set it.
     var tries = 0;
     var poll = setInterval(function () {
-      if (++tries > 60) { clearInterval(poll); return; }
+      if (++tries > 150) { clearInterval(poll); return; } // ~60s ceiling
 
       // Password page first, so the account chip it shows (also a
       // data-identifier) is never mistaken for a chooser tile.
       var pwd = document.querySelector('input[type=password][name=Passwd], input[type=password]');
       if (pwd && pwd.offsetParent !== null) {
-        clearInterval(poll);
-        if (!TKB_PASS || !once('tkbPwdFilled')) return;
-        nativeSet(pwd, TKB_PASS);
-        setTimeout(function () { clickNext(['#passwordNext button', '#passwordNext'], 3); }, 200);
-        return;
+        if (!TKB_PASS) { clearInterval(poll); return; } // nothing to type; user finishes
+        if (pwd.value.length === 0) nativeSet(pwd, TKB_PASS); // (re)fill if empty
+        if (pwd.value.length > 0 && once('tkbPwdNext')) {
+          setTimeout(function () { clickNext(['#passwordNext button', '#passwordNext'], 4); }, 250);
+        }
+        return; // keep polling; the window closes itself once the cookie lands
       }
 
-      // Email page.
+      // Email page. Do NOT stop after this — the password page follows in the
+      // same document and needs this same poller.
       var em = document.querySelector('input[type=email], #identifierId, input[name=identifier]');
       if (em && em.offsetParent !== null) {
-        clearInterval(poll);
-        if (!TKB_EMAIL || !once('tkbEmailFilled')) return;
-        nativeSet(em, TKB_EMAIL);
-        setTimeout(function () { clickNext(['#identifierNext button', '#identifierNext'], 3); }, 200);
+        if (!TKB_EMAIL) { clearInterval(poll); return; }
+        if (em.value.length === 0) nativeSet(em, TKB_EMAIL);
+        if (em.value.length > 0 && once('tkbEmailNext')) {
+          setTimeout(function () { clickNext(['#identifierNext button', '#identifierNext'], 4); }, 250);
+        }
         return;
       }
 
@@ -189,11 +198,10 @@ fn login_init_script(email: Option<&str>, password: Option<&str>) -> String {
           if ((tiles[j].getAttribute('data-identifier') || '').toLowerCase().indexOf('usth') !== -1) { pick = tiles[j]; break; }
         }
         if (!pick && tiles.length === 1) pick = tiles[0];
-        clearInterval(poll);
         if (pick && once('tkbGAcctPicked')) pick.click();
-        return;
+        return; // keep polling; a password page or completion follows
       }
-    }, 250);
+    }, 400);
     return;
   }
 
