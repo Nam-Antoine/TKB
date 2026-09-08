@@ -92,60 +92,39 @@ fn is_portal_host(url: &str) -> bool {
         .unwrap_or(false)
 }
 
-/// JavaScript injected into every page of the login window: pre-fills the
-/// portal's SSO form with the default account (and the saved password, if any)
-/// and, when a password is available, submits as soon as the captcha is solved.
-fn login_init_script(username: &str, password: Option<&str>) -> String {
-    let user_js = serde_json::to_string(username).unwrap_or_default();
-    let pass_js = serde_json::to_string(&password.unwrap_or("")).unwrap_or_default();
-    format!(
-        r#"(function () {{
+/// JavaScript injected into every page of the login window. The USTH portal signs
+/// in with a USTH Google account ("Sử dụng email để login!"), so on the SSO login
+/// page this takes the Gmail / Google OAuth path (/sso/oauth2/authorization/google)
+/// instead of the qldt username+password form. Success is still detected by the new
+/// auth cookie back in open_login, whichever way the sign-in actually went.
+fn login_init_script() -> String {
+    r#"(function () {
   if (location.hostname !== 'erp.usth.edu.vn') return;
-  if (!/^\/sso\//.test(location.pathname)) {{
+  if (!/^\/sso\//.test(location.pathname)) {
     // Signed-out visitors land on the public home page; press its "Log in"
-    // control so the window goes straight to the SSO form.
+    // control so the window goes to the SSO login page.
     var clicks = 0;
-    var poll = setInterval(function () {{
+    var poll = setInterval(function () {
       var el = document.querySelector('.hp-header__login');
-      if (el) {{ clearInterval(poll); el.click(); }}
+      if (el) { clearInterval(poll); el.click(); }
       else if (++clicks > 60) clearInterval(poll);
-    }}, 250);
+    }, 250);
     return;
-  }}
-  if (!/^\/sso\/login/.test(location.pathname)) return;
-  var USER = {user_js}, PASS = {pass_js};
-  function setVal(el, v) {{
-    if (!el) return;
-    var setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set;
-    setter.call(el, v);
-    el.dispatchEvent(new Event('input', {{ bubbles: true }}));
-    el.dispatchEvent(new Event('change', {{ bubbles: true }}));
-  }}
-  function fill() {{
-    var u = document.querySelector('#username, input[name="username"]');
-    var p = document.querySelector('#password, input[name="password"]');
-    if (u && !u.value) setVal(u, USER);
-    if (p && PASS && !p.value) setVal(p, PASS);
-    var qldt = document.querySelector('#show-qldt-login');
-    if (qldt && u && u.offsetParent === null) qldt.click();
-    if (p && !PASS) p.focus();
-    if (PASS) {{
-      var tries = 0;
-      var t = setInterval(function () {{
-        var btn = document.querySelector('#btnLogin');
-        if (btn && !btn.disabled && !btn.dataset.tkbClicked) {{
-          btn.dataset.tkbClicked = '1';
-          clearInterval(t);
-          btn.click();
-        }}
-        if (++tries > 1800) clearInterval(t);
-      }}, 500);
-    }}
-  }}
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', fill);
-  else fill();
-}})();"#
-    )
+  }
+  // Only the bare login page, never the /sso/login/oauth2/code/google callback,
+  // and only once per window so a bounce back to the login page cannot loop.
+  if (!/^\/sso\/login\/?$/.test(location.pathname)) return;
+  try { if (sessionStorage.getItem('tkbGmailTried')) return; } catch (e) {}
+  function go() {
+    try { sessionStorage.setItem('tkbGmailTried', '1'); } catch (e) {}
+    var btn = document.querySelector('button.social-btn.gmail, .social-btn.gmail');
+    if (btn) btn.click();
+    else location.assign('/sso/oauth2/authorization/google');
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', go);
+  else go();
+})();"#
+        .to_string()
 }
 
 fn keyring_entry() -> Result<keyring::Entry, String> {
@@ -243,8 +222,7 @@ async fn open_login(app: AppHandle, state: State<'_, AppState>, silent: bool, ti
         return Ok(false);
     }
     let before = auth_cookie_value(&app);
-    let password = saved_password();
-    let script = login_init_script(DEFAULT_ACCOUNT, password.as_deref());
+    let script = login_init_script();
     let url = Url::parse(PORTAL_URL).map_err(err)?;
     let win = WebviewWindowBuilder::new(&app, LOGIN_LABEL, WebviewUrl::External(url))
         .title(title.as_deref().unwrap_or("Sign in to USTH student portal"))
