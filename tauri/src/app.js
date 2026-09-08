@@ -487,26 +487,9 @@ function readSettings() {
   return out;
 }
 
-async function refreshPasswordField() {
-  const el = $('settings-form').elements._password;
-  el.value = '';
-  const saved = await tkb.isPasswordSaved().catch(() => false);
-  el.placeholder = saved ? t('passwordSaved') : t('optional');
-  $('btn-forget-password').hidden = !saved;
-}
-
-/** Saves the typed password (if any) into Windows Credential Manager; blank leaves the stored one untouched. */
-async function savePasswordIfTyped() {
-  const el = $('settings-form').elements._password;
-  if (!el.value) return;
-  await tkb.savePassword(el.value);
-  await refreshPasswordField();
-}
-
 async function openSettings() {
   config = await tkb.getConfig();
   fillSettings();
-  await refreshPasswordField();
   $('modal-settings').hidden = false;
 }
 
@@ -536,18 +519,8 @@ function bind() {
     e.preventDefault();
     config = await tkb.setConfig(readSettings());
     applyLanguage();
-    try {
-      await savePasswordIfTyped();
-      $('settings-msg').textContent = t('saved');
-    } catch (err) {
-      $('settings-msg').textContent = t('savedNoPassword', { e: err.message || err });
-    }
+    $('settings-msg').textContent = t('saved');
     render();
-  });
-  $('btn-forget-password').addEventListener('click', async () => {
-    await tkb.savePassword('');
-    await refreshPasswordField();
-    $('settings-msg').textContent = t('passwordRemoved');
   });
   $('btn-check-update').addEventListener('click', async () => {
     config = await tkb.setConfig(readSettings());

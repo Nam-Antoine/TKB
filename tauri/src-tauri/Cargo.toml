@@ -1,6 +1,6 @@
 [package]
 name = "usth-timetable"
-version = "1.4.2"
+version = "1.4.3"
 description = "USTH student timetable viewer with change detection and phone notifications"
 authors = ["Tran Khoa Nam"]
 edition = "2021"
