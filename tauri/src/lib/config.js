@@ -7,6 +7,7 @@ export const DEFAULT_CONFIG = Object.freeze({
   notifyOnAuthExpired: true,
   reloginRemindHours: 4, // repeat the "sign in again" notice this often; 0 = only once
   digest: { enabled: true, time: '20:00', whenEmpty: true }, // evening "tomorrow you have…" notice
+  morning: { enabled: true, time: '07:00', whenEmpty: false }, // morning "today you have…" briefing
   launchAtStartup: false,
   startMinimized: false,
   closeToTray: true,
@@ -70,6 +71,10 @@ export function sanitizeConfig(cfg) {
   out.digest.enabled = !!out.digest.enabled;
   out.digest.whenEmpty = !!out.digest.whenEmpty;
   out.digest.time = normalizeTime(out.digest.time) || DEFAULT_CONFIG.digest.time;
+  out.morning = { ...out.morning }; // never write into the shared default object
+  out.morning.enabled = !!out.morning.enabled;
+  out.morning.whenEmpty = !!out.morning.whenEmpty;
+  out.morning.time = normalizeTime(out.morning.time) || DEFAULT_CONFIG.morning.time;
   for (const t of Object.keys(DEFAULT_CONFIG.webhooks)) {
     const w = out.webhooks[t];
     w.enabled = !!w.enabled;

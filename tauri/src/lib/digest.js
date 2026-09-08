@@ -25,12 +25,23 @@ export function tomorrowKey(now = Date.now()) {
  * asleep at the set time sends it late rather than twice or never; after midnight
  * "tomorrow" is a new day and the clock starts again.
  */
-export function digestDue(sentFor, time, now = Date.now()) {
-  const [h, m] = (normalizeTime(time) || '20:00').split(':').map(Number);
+/** YYYY-MM-DD of `now` (local calendar). */
+export function todayKey(now = Date.now()) { return keyOfDate(new Date(now)); }
+
+/** Whether the local wall clock has reached `time` ("HH:MM"; `fallback` if unparsable) today. */
+function pastSetTime(time, fallback, now) {
+  const [h, m] = (normalizeTime(time) || fallback).split(':').map(Number);
   const d = new Date(now);
-  const due = new Date(d.getFullYear(), d.getMonth(), d.getDate(), h, m).getTime();
-  if (now < due) return false;
-  return sentFor !== tomorrowKey(now);
+  return now >= new Date(d.getFullYear(), d.getMonth(), d.getDate(), h, m).getTime();
+}
+
+export function digestDue(sentFor, time, now = Date.now()) {
+  return pastSetTime(time, '20:00', now) && sentFor !== tomorrowKey(now);
+}
+
+/** The morning twin of digestDue: today's briefing, once per day after its set time. */
+export function morningDue(sentFor, time, now = Date.now()) {
+  return pastSetTime(time, '07:00', now) && sentFor !== todayKey(now);
 }
 
 /**
@@ -38,7 +49,7 @@ export function digestDue(sentFor, time, now = Date.now()) {
  * `count` leaves cancelled sessions out; they are still listed, marked as cancelled,
  * so a "3 sessions" title never hides a class that was called off.
  */
-export function buildDigest(sessions, dateKey, lang = 'en') {
+export function buildDigest(sessions, dateKey, lang = 'en', kind = 'tomorrow') {
   const list = (sessions || [])
     .filter((s) => s.dateKey === dateKey)
     .sort((a, b) => a.from - b.from || String(a.classId).localeCompare(String(b.classId)));
@@ -51,7 +62,9 @@ export function buildDigest(sessions, dateKey, lang = 'en') {
     return bits.join(' · ');
   });
   const count = list.filter((s) => s.status !== 5).length;
-  const title = t('digestTitle', { d: day, n: count ? sessionCount(count, lang) : t('digestNone', null, lang) }, lang);
-  const text = lines.length ? lines.join('\n') : t('digestNoneText', { d: day }, lang);
+  const titleKey = kind === 'today' ? 'morningTitle' : 'digestTitle';
+  const noneTextKey = kind === 'today' ? 'morningNoneText' : 'digestNoneText';
+  const title = t(titleKey, { d: day, n: count ? sessionCount(count, lang) : t('digestNone', null, lang) }, lang);
+  const text = lines.length ? lines.join('\n') : t(noneTextKey, { d: day }, lang);
   return { dateKey, count, title, lines, text };
 }

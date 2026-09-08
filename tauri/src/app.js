@@ -473,6 +473,7 @@ function fillSettings() {
   $('settings-msg').textContent = '';
   $('update-msg').textContent = '';
   $('digest-msg').textContent = '';
+  $('morning-msg').textContent = '';
   $('about-line').textContent = t('about', { v: state && state.version ? state.version : '', a: state ? state.defaultAccount : 'namtk2410702' });
 }
 
@@ -572,6 +573,16 @@ function bind() {
     const r = await tkb.sendDigest();
     if (!r || r.status !== 'sent') $('digest-msg').textContent = t('digestNoData');
     else $('digest-msg').textContent = r.results.length
+      ? r.results.map((x) => `${x.target}: ${x.ok ? t('sent') : t('failedWith', { e: x.error })}`).join(' · ')
+      : t('desktopOnly');
+  });
+  $('btn-morning-now').addEventListener('click', async () => {
+    $('morning-msg').textContent = t('savingSending');
+    config = await tkb.setConfig(readSettings());
+    applyLanguage();
+    const r = await tkb.sendMorning();
+    if (!r || r.status !== 'sent') $('morning-msg').textContent = t('digestNoData');
+    else $('morning-msg').textContent = r.results.length
       ? r.results.map((x) => `${x.target}: ${x.ok ? t('sent') : t('failedWith', { e: x.error })}`).join(' · ')
       : t('desktopOnly');
   });

@@ -10,7 +10,7 @@ import { diffSessions, describeDiff } from './lib/diff.js';
 import * as notify from './lib/notify.js';
 import { DEFAULT_CONFIG, deepMerge, sanitizeConfig, randomTopic, reminderDue } from './lib/config.js';
 import { t, setLang, detectLang } from './lib/i18n.js';
-import { tomorrowKey, digestDue, buildDigest } from './lib/digest.js';
+import { tomorrowKey, todayKey, digestDue, morningDue, buildDigest } from './lib/digest.js';
 
 const MAX_CHANGES = 300;
 const UPDATE_CHECK_MS = 6 * 60 * 60 * 1000;
@@ -42,7 +42,7 @@ let startup = null;
 let pollTimer = null;
 let authReminderAt = 0; // when the last "sign in again" notice went out; 0 = none since the last good session
 let lastUpdateCheck = 0;
-let digestBusy = false;
+const briefingBusy = { tomorrow: false, today: false };
 const stateListeners = new Set();
 const showChangesListeners = new Set();
 
@@ -179,28 +179,38 @@ async function updateMeta(patch) {
   await store.write('meta', meta);
 }
 
+// The two daily briefings share one code path; they differ only in which day they
+// describe, which config block and meta stamp they use, and the webhook event name.
+const BRIEFINGS = {
+  tomorrow: { cfgKey: 'digest', metaKey: 'digestSentFor', dayKey: tomorrowKey, due: digestDue, event: 'timetable.tomorrow' },
+  today: { cfgKey: 'morning', metaKey: 'morningSentFor', dayKey: todayKey, due: morningDue, event: 'timetable.today' },
+};
+
 /**
- * The evening notice: "Tomorrow, Mon 7 Sep: 3 sessions" plus one line per session,
- * as a Windows toast and to the phone targets. Runs once a day after config.digest.time
- * (checked on the minute heartbeat) and on demand from Settings (`manual`).
+ * A daily briefing: "Tomorrow, Mon 7 Sep: 3 sessions" in the evening, or the same for
+ * "Today" at breakfast, as a Windows toast and to the phone targets. Runs once a day
+ * after its block's set time (checked on the minute heartbeat) and on demand from
+ * Settings (`manual`). `kind` is 'tomorrow' or 'today'.
  * Returns { status: 'sent' | 'empty' | 'no-data' | 'skipped', digest?, results? }.
  */
-async function sendDigest({ manual = false } = {}) {
-  if (digestBusy) return { status: 'skipped' };
-  const dateKey = tomorrowKey();
+async function sendBriefing({ kind = 'tomorrow', manual = false } = {}) {
+  const b = BRIEFINGS[kind];
+  const cfg = config[b.cfgKey];
+  if (briefingBusy[kind]) return { status: 'skipped' };
+  const dateKey = b.dayKey();
   if (!manual) {
-    if (!config.digest.enabled) return { status: 'skipped' };
+    if (!cfg.enabled) return { status: 'skipped' };
     const meta = (await store.read('meta', {})) || {};
-    if (!digestDue(meta.digestSentFor, config.digest.time)) return { status: 'skipped' };
+    if (!b.due(meta[b.metaKey], cfg.time)) return { status: 'skipped' };
   }
-  digestBusy = true;
+  briefingBusy[kind] = true;
   try {
     // Freshen the snapshot first when it is more than 10 minutes old and no check is running.
-    if (state.authState === 'ok' && !state.checking && (!state.lastSuccess || Date.now() - state.lastSuccess > 10 * 60000)) await refresh({ reason: 'digest' });
-    if (!manual) await updateMeta({ digestSentFor: dateKey });
-    if (!state.lastSuccess) { log('digest skipped: no timetable loaded yet'); return { status: 'no-data' }; }
-    const digest = buildDigest(state.sessions, dateKey, config.language);
-    if (!digest.lines.length && !config.digest.whenEmpty && !manual) { log(`digest for ${dateKey}: nothing tomorrow, notice off`); return { status: 'empty', digest }; }
+    if (state.authState === 'ok' && !state.checking && (!state.lastSuccess || Date.now() - state.lastSuccess > 10 * 60000)) await refresh({ reason: kind });
+    if (!manual) await updateMeta({ [b.metaKey]: dateKey });
+    if (!state.lastSuccess) { log(`${kind} briefing skipped: no timetable loaded yet`); return { status: 'no-data' }; }
+    const digest = buildDigest(state.sessions, dateKey, config.language, kind);
+    if (!digest.lines.length && !cfg.whenEmpty && !manual) { log(`${kind} briefing for ${dateKey}: nothing scheduled, notice off`); return { status: 'empty', digest }; }
     const preview = digest.lines.slice(0, 4).join('\n') + (digest.lines.length > 4 ? `\n${t('andMoreSessions', { n: digest.lines.length - 4 })}` : '');
     desktopNotify(digest.title, preview || digest.text);
     const payload = {
@@ -209,12 +219,12 @@ async function sendDigest({ manual = false } = {}) {
       student: state.user ? { studentId: state.user.studentId, fullName: state.user.fullName } : null,
       sessions: state.sessions.filter((s) => s.dateKey === dateKey),
     };
-    const results = await notify.dispatch(config.webhooks, { title: digest.title, text: digest.text, event: 'timetable.tomorrow', click: PORTAL_URL }, payload);
+    const results = await notify.dispatch(config.webhooks, { title: digest.title, text: digest.text, event: b.event, click: PORTAL_URL }, payload);
     for (const r of results) log('webhook', r.target, r.ok ? 'ok' : `failed: ${r.error}`);
-    log(`digest for ${dateKey} sent${manual ? ' (manual)' : ''}: ${digest.count} sessions`);
+    log(`${kind} briefing for ${dateKey} sent${manual ? ' (manual)' : ''}: ${digest.count} sessions`);
     return { status: 'sent', digest, results };
   } finally {
-    digestBusy = false;
+    briefingBusy[kind] = false;
   }
 }
 
@@ -392,7 +402,7 @@ export const tkb = {
   getConfig: async () => config,
   setConfig: async (patch) => {
     const before = config;
-    config = sanitizeConfig({ ...config, ...patch, webhooks: { ...config.webhooks, ...(patch.webhooks || {}) }, updates: { ...config.updates, ...(patch.updates || {}) }, digest: { ...config.digest, ...(patch.digest || {}) } });
+    config = sanitizeConfig({ ...config, ...patch, webhooks: { ...config.webhooks, ...(patch.webhooks || {}) }, updates: { ...config.updates, ...(patch.updates || {}) }, digest: { ...config.digest, ...(patch.digest || {}) }, morning: { ...config.morning, ...(patch.morning || {}) } });
     await store.write('config', config);
     setLang(config.language);
     if (before.pollMinutes !== config.pollMinutes) scheduleNext();
@@ -417,7 +427,8 @@ export const tkb = {
     desktopNotify(title, text);
     return notify.dispatch(config.webhooks, { title, text, event: 'test' }, {}, { force: true });
   },
-  sendDigest: () => sendDigest({ manual: true }),
+  sendDigest: () => sendBriefing({ kind: 'tomorrow', manual: true }),
+  sendMorning: () => sendBriefing({ kind: 'today', manual: true }),
   openExternal: (url) => invoke('open_external', { url }),
   isPasswordSaved: () => invoke('password_saved'),
   savePassword: (value) => invoke('password_set', { value: String(value || '') }),
@@ -458,7 +469,8 @@ export async function boot() {
     // Belt and braces: the Rust heartbeat fires even if the page's own timers are throttled.
     if (!state.checking && state.nextCheck && Date.now() >= state.nextCheck + 30000) refresh({ reason: 'heartbeat' });
     maybeCheckForUpdates();
-    sendDigest().catch((e) => log('digest failed', e && e.message ? e.message : e));
+    sendBriefing({ kind: 'tomorrow' }).catch((e) => log('digest failed', e && e.message ? e.message : e));
+    sendBriefing({ kind: 'today' }).catch((e) => log('morning briefing failed', e && e.message ? e.message : e));
   });
 
   if (!(config.startMinimized || startup.hiddenStart)) await invoke('show_main');

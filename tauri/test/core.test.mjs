@@ -5,7 +5,7 @@ import { encryptPayload, decryptPayload, checksum, normalizeTimetable, periodToT
 import { diffSessions, describeDiff } from '../src/lib/diff.js';
 import { chunk } from '../src/lib/notify.js';
 import { sanitizeConfig, reminderDue, normalizeTime } from '../src/lib/config.js';
-import { tomorrowKey, digestDue, buildDigest } from '../src/lib/digest.js';
+import { tomorrowKey, todayKey, digestDue, morningDue, buildDigest } from '../src/lib/digest.js';
 
 test('encrypt/decrypt round trip', async () => {
   const obj = { fromTime: 1, toTime: 2, semester: '20261', weeks: [1, 2], name: 'Tiếng Việt' };
@@ -144,6 +144,7 @@ test('reminderDue: first notice always, repeats after the interval, quiet at nig
 
 test('digest settings default on at 20:00 and accept only times of day', () => {
   assert.deepStrictEqual(sanitizeConfig({}).digest, { enabled: true, time: '20:00', whenEmpty: true });
+  assert.deepStrictEqual(sanitizeConfig({}).morning, { enabled: true, time: '07:00', whenEmpty: false });
   assert.strictEqual(sanitizeConfig({ digest: { time: '7:5' } }).digest.time, '20:00');
   assert.strictEqual(sanitizeConfig({ digest: { time: '7:05' } }).digest.time, '07:05');
   assert.strictEqual(sanitizeConfig({ digest: { time: '24:00' } }).digest.time, '20:00');
@@ -186,4 +187,27 @@ test('buildDigest lists tomorrow in order, marks cancelled and exams, speaks Vie
   assert.strictEqual(none.count, 0);
   assert.strictEqual(none.title, 'Tomorrow, Sun 13 Sep: no class');
   assert.strictEqual(none.text, 'Nothing on the timetable for tomorrow (Sun 13 Sep).');
+});
+
+test('morningDue: after the set time, once per today, catches up late', () => {
+  const at = (h, m) => new Date(2026, 8, 6, h, m).getTime(); // Sun 6 Sep 2026
+  assert.strictEqual(todayKey(at(7, 0)), '2026-09-06');
+  assert.strictEqual(morningDue(null, '07:00', at(6, 59)), false);
+  assert.strictEqual(morningDue(null, '07:00', at(7, 0)), true);
+  assert.strictEqual(morningDue('2026-09-06', '07:00', at(7, 1)), false); // already sent for today
+  assert.strictEqual(morningDue('2026-09-05', '07:00', at(9, 30)), true); // yesterday's stamp, PC was asleep at 07:00
+  assert.strictEqual(morningDue('2026-09-06', '07:00', new Date(2026, 8, 7, 3, 0).getTime()), false); // 3am next day: not yet 07:00
+  assert.strictEqual(sanitizeConfig({ morning: { time: '6:5' } }).morning.time, '07:00');
+  assert.strictEqual(sanitizeConfig({ morning: { time: '06:30' } }).morning.time, '06:30');
+});
+
+test('buildDigest speaks of "today" for the morning briefing', () => {
+  const s = { id: 'a', classId: 'C1', courseId: 'CID', courseName: 'Giải tích', courseNameEn: 'Calculus', dateKey: '2026-09-06', from: 1, to: 2, startTime: '07:30', endTime: '09:15', place: 'R1', teachers: ['A'], status: 1, isExam: false };
+  const en = buildDigest([s], '2026-09-06', 'en', 'today');
+  assert.strictEqual(en.title, 'Today, Sun 6 Sep: 1 session');
+  const vi = buildDigest([s], '2026-09-06', 'vi', 'today');
+  assert.strictEqual(vi.title, 'Hôm nay, CN 06/09: 1 buổi học');
+  const none = buildDigest([], '2026-09-06', 'en', 'today');
+  assert.strictEqual(none.title, 'Today, Sun 6 Sep: no class');
+  assert.strictEqual(none.text, 'Nothing on the timetable for today (Sun 6 Sep).');
 });
