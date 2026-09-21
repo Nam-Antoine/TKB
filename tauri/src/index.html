@@ -83,6 +83,15 @@
     <section id="view-day" class="view" hidden>
       <div class="day-strip" id="day-strip"></div>
       <div class="day-list" id="day-list"></div>
+      <div class="day-note" id="day-note">
+        <div class="day-note-head">
+          <h4 data-i18n="notesTitle">Notes for this day</h4>
+          <span class="day-note-status" id="day-note-status" aria-live="polite"></span>
+        </div>
+        <textarea id="day-note-input" rows="4" spellcheck="false"
+          data-i18n-ph="notesPlaceholder"
+          placeholder="Jot down anything for this day — exam room, revision plan, deadlines, reminders…"></textarea>
+      </div>
     </section>
     <section id="view-week" class="view" hidden>
       <div class="week-grid" id="week-grid"></div>

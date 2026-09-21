@@ -1,6 +1,7 @@
 import { tkb, boot } from './core.js';
 import { t, setLang, getLang, applyDom, dayNames, fmtDayShort, fmtDateLong, fmtMonthTitle, sessionCount } from './lib/i18n.js';
 import { classProgress, overallProgress } from './lib/progress.js';
+import { hasNote } from './lib/notes.js';
 
 const PERIODS = [
   ['07:30', '08:20'], ['08:25', '09:15'], ['09:25', '10:15'], ['10:25', '11:15'], ['11:20', '12:10'],
@@ -17,6 +18,9 @@ const VIEW_KEY = 'tkb.view.v2';
 const $ = (id) => document.getElementById(id);
 let state = null;
 let config = null;
+let notes = {}; // { 'YYYY-MM-DD': text } personal day notes, cached from the store
+let noteSaveTimer = null;
+let noteStatusTimer = null;
 let cursor = startOfDay(new Date()); // the selected day (Month/Day views) or a day of the shown week (Week view)
 let view = loadView();
 let changesOpen = false;
@@ -226,6 +230,7 @@ function renderMonth() {
   const box = $('month-list');
   box.innerHTML = list.length ? sessionCards(list, selKey) : `<div class="day-empty">${esc(t('noSessions'))}</div>`;
   bindCards(box);
+  markNoteIndicators();
 }
 
 /** Day view: a strip of the seven days around the cursor and the selected day's sessions as cards. */
@@ -252,6 +257,50 @@ function renderDay() {
   const box = $('day-list');
   box.innerHTML = list.length ? sessionCards(list, selKey) : `<div class="day-empty">${esc(t('noSessionsOn', { d: fmtLong(selKey) }))}</div>`;
   bindCards(box);
+
+  syncNoteEditor(selKey);
+  markNoteIndicators();
+}
+
+/**
+ * Points the note editor at `dayKey`, showing that day's saved note. Leaves the box
+ * alone while the user is typing in it (same day, still focused) so a background
+ * re-render — the 30s heartbeat, a portal check — never eats an unsaved note.
+ */
+function syncNoteEditor(dayKey) {
+  const input = $('day-note-input');
+  if (!input) return;
+  if (document.activeElement !== input || input.dataset.day !== dayKey) {
+    input.value = notes[dayKey] || '';
+    setNoteStatus('');
+  }
+  input.dataset.day = dayKey;
+}
+
+function setNoteStatus(text) {
+  const el = $('day-note-status');
+  if (el) el.textContent = text;
+}
+
+/** Toggles the "has a note" marker on every day chip / month cell currently in the DOM. */
+function markNoteIndicators() {
+  document.querySelectorAll('.day-chip[data-day], .mg-day[data-day]').forEach((el) => {
+    el.classList.toggle('has-note', hasNote(notes, el.dataset.day));
+  });
+}
+
+async function saveNote(dayKey, text) {
+  const onSameDay = () => $('day-note-input').dataset.day === dayKey;
+  try {
+    notes = await tkb.setNote(dayKey, text);
+    markNoteIndicators();
+    if (!onSameDay()) return; // moved on while saving: don't flash status on another day
+    setNoteStatus(t('noteSaved'));
+    clearTimeout(noteStatusTimer);
+    noteStatusTimer = setTimeout(() => { if (onSameDay()) setNoteStatus(''); }, 2000);
+  } catch (e) {
+    if (onSameDay()) setNoteStatus(t('noteSaveFailed'));
+  }
 }
 
 /** Assign overlapping sessions of one day to columns. Returns [{s, col, cols}]. */
@@ -553,6 +602,18 @@ function bind() {
   $('btn-month-next').addEventListener('click', () => step(1));
   $('btn-today').addEventListener('click', () => { cursor = startOfDay(new Date()); renderView(); });
   document.querySelectorAll('.view-switch .seg').forEach((b) => b.addEventListener('click', () => { view = b.dataset.view; saveView(view); renderView(); }));
+  const noteInput = $('day-note-input');
+  noteInput.addEventListener('input', () => {
+    const day = noteInput.dataset.day;
+    setNoteStatus(t('noteSaving'));
+    clearTimeout(noteSaveTimer);
+    noteSaveTimer = setTimeout(() => saveNote(day, noteInput.value), 600);
+  });
+  noteInput.addEventListener('blur', () => {
+    clearTimeout(noteSaveTimer);
+    const day = noteInput.dataset.day;
+    if ((notes[day] || '') !== noteInput.value.trim()) saveNote(day, noteInput.value);
+  });
   document.querySelectorAll('#lang-switch .lang').forEach((b) => b.addEventListener('click', () => switchLanguage(b.dataset.lang)));
   $('semester-select').addEventListener('change', async (e) => {
     config = await tkb.setConfig({ semester: e.target.value });
@@ -645,6 +706,7 @@ function bind() {
   }
   config = await tkb.getConfig();
   applyLanguage();
+  notes = await tkb.getNotes();
   state = await tkb.getState();
   render();
 })();

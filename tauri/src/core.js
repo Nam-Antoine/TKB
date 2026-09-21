@@ -7,6 +7,7 @@
 import { invoke, listen, httpFetch } from './bridge.js';
 import { UsthClient, AuthError, normalizeTimetable, pickCurrentSemester, PORTAL_URL, parseJwt, DEFAULT_ACCOUNT } from './lib/usth-api.js';
 import { diffSessions, describeDiff } from './lib/diff.js';
+import { setNote as applyNoteEdit } from './lib/notes.js';
 import * as notify from './lib/notify.js';
 import { DEFAULT_CONFIG, deepMerge, sanitizeConfig, randomTopic, reminderDue } from './lib/config.js';
 import { t, setLang, detectLang } from './lib/i18n.js';
@@ -421,6 +422,13 @@ export const tkb = {
     return true;
   },
   clearChanges: async () => { await store.write('changes', []); await broadcast(); return true; },
+  getNotes: () => store.read('notes', {}).then((v) => v || {}),
+  setNote: async (dateKey, text) => {
+    const notes = (await store.read('notes', {})) || {};
+    const next = applyNoteEdit(notes, dateKey, text);
+    await store.write('notes', next);
+    return next;
+  },
   testNotify: async () => {
     const title = t('testTitle');
     const text = t('testText', { t: new Date().toLocaleString() });

@@ -7,6 +7,7 @@ import { chunk } from '../src/lib/notify.js';
 import { sanitizeConfig, reminderDue, normalizeTime } from '../src/lib/config.js';
 import { tomorrowKey, todayKey, digestDue, morningDue, buildDigest } from '../src/lib/digest.js';
 import { classProgress, overallProgress, sessionEndMs } from '../src/lib/progress.js';
+import { setNote, normalizeNote, hasNote, noteCount } from '../src/lib/notes.js';
 
 test('encrypt/decrypt round trip', async () => {
   const obj = { fromTime: 1, toTime: 2, semester: '20261', weeks: [1, 2], name: 'Tiếng Việt' };
@@ -242,4 +243,28 @@ test('sessionEndMs falls back to end of day without a time', () => {
   assert.strictEqual(sessionEndMs({ dateKey: '2026-09-07', endTime: '09:15' }), new Date(2026, 8, 7, 9, 15).getTime());
   assert.strictEqual(sessionEndMs({ dateKey: '2026-09-07' }), new Date(2026, 8, 7, 23, 59).getTime());
   assert.strictEqual(sessionEndMs({ dateKey: '' }), 0);
+});
+
+test('setNote adds, updates and removes day notes; blanks never linger', () => {
+  let notes = {};
+  notes = setNote(notes, '2026-09-14', '  Calculus exam, room B201  ');
+  assert.strictEqual(notes['2026-09-14'], 'Calculus exam, room B201'); // trimmed
+  assert.ok(hasNote(notes, '2026-09-14'));
+  assert.strictEqual(noteCount(notes), 1);
+
+  notes = setNote(notes, '2026-09-14', 'Calculus exam moved to B305');
+  assert.strictEqual(notes['2026-09-14'], 'Calculus exam moved to B305'); // updated in place
+  assert.strictEqual(noteCount(notes), 1);
+
+  const before = notes;
+  notes = setNote(notes, '2026-09-14', '   \n  '); // whitespace-only clears the day
+  assert.ok(!hasNote(notes, '2026-09-14'));
+  assert.strictEqual(noteCount(notes), 0);
+  assert.strictEqual(before['2026-09-14'], 'Calculus exam moved to B305'); // input map untouched
+});
+
+test('normalizeNote keeps inner newlines, normalises CRLF, trims edges', () => {
+  assert.strictEqual(normalizeNote('\r\n line 1\r\nline 2 \n'), 'line 1\nline 2');
+  assert.strictEqual(normalizeNote(null), '');
+  assert.strictEqual(normalizeNote('   '), '');
 });
